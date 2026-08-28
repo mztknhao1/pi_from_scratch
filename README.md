@@ -2,64 +2,91 @@
 
 ![pi_from_scratch 项目封面](assets/pi-from-scratch-cover.png)
 
-一个面向具备大模型/VLM 与基础具身知识读者的迷你 π 系列训练框架。
+`pi_from_scratch` 是一个面向具备大模型/VLM 和基础具身知识读者的 π 系列学习项目。
 
-它参考 [openpi](https://github.com/Physical-Intelligence/openpi) 的关键设计，但不会复刻工业级代码，也不会声称能用小数据、小模型复现论文结果。第一阶段只保留最重要的闭环：
+我们将从一个可以在普通开发机上运行的小型模型出发，逐步理解并实现 π₀、FAST、RTC、π₀.₅、π*₀.₆、MEM 和 π₀.₇ 中的重要思想，最终把数据、训练、推理与仿真环境连接成一个完整的小型 VLA 系统。
 
-```text
-图像 + 语言 + 本体状态 -> 条件编码 -> action expert -> action chunk
-                                            ^
-                                      flow matching
-```
+本项目参考 [openpi](https://github.com/Physical-Intelligence/openpi)，但重点是用较小、易读、可实验的代码解释核心机制，而不是复现原论文的模型规模和性能。
 
-当前里程碑 `M0` 已包含：
+## 你会学到什么
 
-- 一个纯 PyTorch 的小型 π₀ 风格模型；
-- action chunk 的 conditional flow-matching 训练和 Euler 采样；
-- 无需下载数据的 synthetic smoke test；
-- `lerobot/pusht` 适配器入口；
-- 论文演进地图和后续实现边界。
+- 一个 VLA 系统如何连接视觉、语言、机器人状态和连续动作；
+- LeRobot trajectory 如何变成带 action chunk 的训练样本；
+- π₀ 如何使用 action expert 和 flow matching 生成连续动作；
+- FAST 如何压缩高频动作并进行自回归预测；
+- RTC 如何在存在推理延迟时连续执行 action chunk；
+- π₀.₅、π*₀.₆、MEM 和 π₀.₇ 如何分别引入异构训练、经验学习、长短期记忆与 context steering；
+- 如何在仿真环境中评估 success、reward、延迟、轨迹连续性与失败案例。
 
-## 先跑通，再理解
+完整学习路线见 [课程大纲](docs/00_learning_path.md)，论文之间的关系见 [π 系列知识地图](docs/01_pi_family.md)。
 
-要求 Python 3.11+。在本目录执行：
+## 从第一讲开始
+
+第一讲先建立完整系统观，而不是直接进入公式：
+
+> [第 1 讲：认识 VLA 系统——机器人如何从“看见、听懂”走到“行动”](docs/lessons/01_vla_system_overview.md)
+
+这一讲会介绍数据、VLA policy、动作生成、训练目标、runtime、仿真环境和评估之间的关系，并通过一个不学习的 random policy 跑通最小闭环。
+
+安装并运行第一讲实验：
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e '.[dev]'
-pi-train --dataset synthetic --steps 20 --device cpu
-pytest
+
+pi-contract-demo
+pytest -q tests/test_contracts.py
 ```
 
-校验 `lerobot/pusht` 的下载与 batch 管线（会从 Hugging Face 下载数据）：
+## 运行最小训练
+
+仓库目前提供一个小型 PyTorch π₀ 风格模型，包括：
+
+- 图像、文本和低维 state 条件编码；
+- action chunk；
+- conditional flow-matching loss；
+- Euler action sampling；
+- synthetic dataset 和自动测试。
+
+无需下载机器人数据即可运行：
+
+```bash
+pi-train --dataset synthetic --steps 20 --device cpu
+pytest -q
+```
+
+训练完成后，checkpoint 会保存在 `outputs/debug/`。
+
+## LeRobot PushT 数据
+
+项目选择 [`lerobot/pusht`](https://huggingface.co/datasets/lerobot/pusht) 作为第一套真实数据。它体积较小、使用连续二维动作，适合检查数据窗口、action chunk、训练和闭环控制。
+
+安装 LeRobot 并校验数据接口：
 
 ```bash
 pip install -e '.[dev,lerobot]'
 pi-train --dataset lerobot/pusht --steps 5 --device cuda
 ```
 
-PushT 适合验证数据、模型、loss、反向传播和保存 checkpoint 的完整链路，但它只有一个固定任务，不能检验真正的语言泛化。当前 M0 也还没有接入训练集统计量归一化，因此这条命令只是接口 smoke test，不应拿 loss 或策略效果做结论。归一化和 episode split 是 M1 的第一项任务。
+目前 PushT 接口用于管线 smoke test；训练集统计量归一化、episode split 和闭环环境评估会在后续课程中加入。在这些模块完成前，不应使用上述 5-step 结果评价策略性能。
 
-## 课程设计
+PushT 只有一个固定任务，适合验证连续控制机制，但不能证明语言泛化、开放世界能力或分钟级记忆。后续高级章节会使用受控实验，并预留一个小型 LIBERO 多任务扩展。
 
-目前先冻结大纲、模块边界和统一验收方式，再逐讲编写正文与实现：
+## 当前内容
 
-1. [`docs/00_learning_path.md`](docs/00_learning_path.md)：16 讲课程大纲，以及训练线和推理/runtime 线。
-2. [`docs/01_pi_family.md`](docs/01_pi_family.md)：π₀ → FAST → π₀.₅ → π*₀.₆ → MEM → π₀.₇ 的核心变化。
-3. [`docs/03_architecture_blueprint.md`](docs/03_architecture_blueprint.md)：目标代码架构、接口、PushT demo 与 RTC 验证蓝图。
-4. [`docs/lessons/01_vla_system_overview.md`](docs/lessons/01_vla_system_overview.md)：第一讲正式内容，从完整 VLA 系统全景和 random policy probe 开始。
+```text
+图像 + 语言 + 本体状态
+          ↓
+      条件编码
+          ↓
+     action expert
+          ↓
+   flow matching action chunk
+```
 
-当前代码仍是 M0 可运行骨架，后续会按蓝图渐进迁移，不做一次性重写。
+当前仓库已经包含第一讲正文、统一的 observation/action 接口、random policy 演示、小型 flow policy、synthetic 训练和测试。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
 
-## 项目原则
+## 项目边界
 
-- 每个里程碑必须有 CPU smoke test。
-- 论文概念先写最小实现，再替换成预训练大模型。
-- 数据格式、模型结构、训练目标分层，避免把机器人差异写死在模型里。
-- 训练、采样、runtime 和 simulator 分层；RTC 是 runtime/inference 能力，不写死在模型版本中。
-- 每个“简化”都要在文档里说清楚，避免教学代码被误认为论文复现。
-
-## 状态
-
-`M0` 是可审阅的第一版骨架。课程大纲和验收约束已先行定义；下一步从第 1–2 讲的接口与 LeRobot 数据检查工具开始，而不是立即扩写整套讲义。
+这是一个教学实现。小模型和小数据实验用于理解算法、检查接口和比较机制，不能代表 Physical Intelligence 原始模型在大规模跨机器人数据上的能力。
