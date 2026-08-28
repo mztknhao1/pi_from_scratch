@@ -8,6 +8,17 @@ from pi_from_scratch.config import ModelConfig
 from pi_from_scratch.flow_matching import euler_sample, sample_flow_batch
 
 
+def masked_action_mse(predicted: Tensor, target: Tensor, valid_mask: Tensor) -> Tensor:
+    """Average action error over valid timesteps only."""
+    if predicted.shape != target.shape or predicted.ndim != 3:
+        raise ValueError("predicted and target must share shape [batch, horizon, action_dim]")
+    if valid_mask.shape != predicted.shape[:2] or valid_mask.dtype != torch.bool:
+        raise ValueError("valid_mask must be bool with shape [batch, horizon]")
+    per_step = F.mse_loss(predicted, target, reduction="none").mean(dim=-1)
+    weights = valid_mask.to(per_step.dtype)
+    return (per_step * weights).sum() / weights.sum().clamp_min(1.0)
+
+
 def sinusoidal_time_embedding(time: Tensor, width: int) -> Tensor:
     if width % 2:
         raise ValueError("width must be even")
@@ -73,23 +84,40 @@ class TinyPi0(nn.Module):
         state_feature = self.state_encoder(state.float())
         return self.condition(torch.cat((image_feature, text_feature, state_feature), dim=-1))
 
-    def predict_velocity(self, noisy_actions: Tensor, time: Tensor, condition: Tensor) -> Tensor:
+    def predict_velocity(
+        self,
+        noisy_actions: Tensor,
+        time: Tensor,
+        condition: Tensor,
+        valid_mask: Tensor | None = None,
+    ) -> Tensor:
         horizon = noisy_actions.shape[1]
         if horizon > self.config.action_horizon:
             raise ValueError("action chunk is longer than configured action_horizon")
+        if valid_mask is not None and (
+            valid_mask.shape != noisy_actions.shape[:2] or valid_mask.dtype != torch.bool
+        ):
+            raise ValueError("valid_mask must be bool with shape [batch, horizon]")
         tokens = self.action_input(noisy_actions)
         tokens = tokens + self.position[:horizon]
         tokens = tokens + self.time_mlp(sinusoidal_time_embedding(time, self.config.width))[:, None]
         tokens = tokens + condition[:, None]
-        return self.action_output(self.action_expert(tokens))
+        padding_mask = None if valid_mask is None else ~valid_mask
+        return self.action_output(
+            self.action_expert(tokens, src_key_padding_mask=padding_mask)
+        )
 
     def loss(self, batch: dict[str, Tensor]) -> Tensor:
         condition = self.encode_condition(
             batch["image"], batch["state"], batch["text_ids"], batch["text_mask"]
         )
         noisy_actions, time, target_velocity = sample_flow_batch(batch["actions"].float())
-        predicted_velocity = self.predict_velocity(noisy_actions, time, condition)
-        return F.mse_loss(predicted_velocity, target_velocity)
+        action_mask = batch.get(
+            "action_mask",
+            torch.ones(noisy_actions.shape[:2], dtype=torch.bool, device=noisy_actions.device),
+        )
+        predicted_velocity = self.predict_velocity(noisy_actions, time, condition, action_mask)
+        return masked_action_mse(predicted_velocity, target_velocity, action_mask)
 
     @torch.no_grad()
     def sample_actions(self, batch: dict[str, Tensor], num_steps: int = 10) -> Tensor:

@@ -37,6 +37,7 @@ class SyntheticPiDataset(Dataset[dict[str, Tensor]]):
             "text_ids": text_ids,
             "text_mask": text_mask,
             "actions": actions,
+            "action_mask": torch.ones(self.model.action_horizon, dtype=torch.bool),
         }
 
 
@@ -46,14 +47,10 @@ class LeRobotPiDataset(Dataset[dict[str, Tensor]]):
     def __init__(self, data: DataConfig, model: ModelConfig):
         try:
             from lerobot.datasets.lerobot_dataset import LeRobotDataset, LeRobotDatasetMetadata
-        except ImportError:
-            try:
-                from lerobot.common.datasets.lerobot_dataset import (
-                    LeRobotDataset,
-                    LeRobotDatasetMetadata,
-                )
-            except ImportError as exc:
-                raise ImportError("Install the LeRobot extra: pip install -e '.[lerobot]'") from exc
+        except ImportError as exc:
+            raise ImportError(
+                "LeRobot dataset dependencies are missing. Run: pip install -e '.[lerobot]'"
+            ) from exc
 
         self.data = data
         self.model = model
@@ -65,6 +62,7 @@ class LeRobotPiDataset(Dataset[dict[str, Tensor]]):
             delta_timestamps={
                 data.action_key: [step / metadata.fps for step in range(model.action_horizon)]
             },
+            video_backend=data.video_backend,
         )
 
     def __len__(self) -> int:
@@ -79,6 +77,15 @@ class LeRobotPiDataset(Dataset[dict[str, Tensor]]):
         actions = torch.as_tensor(raw[self.data.action_key], dtype=torch.float32)
         if actions.ndim == 1:
             actions = actions[None]
+        padding_key = f"{self.data.action_key}_is_pad"
+        action_padding = torch.as_tensor(
+            raw.get(padding_key, torch.zeros(actions.shape[0], dtype=torch.bool)),
+            dtype=torch.bool,
+        )
+        if action_padding.shape != actions.shape[:1]:
+            raise ValueError(f"{padding_key} must have shape [horizon]")
+        if action_padding[0].item() or torch.any(action_padding[:-1] & ~action_padding[1:]).item():
+            raise ValueError(f"{padding_key} must describe a non-empty valid prefix")
         prompt = str(raw.get("task", self.data.default_prompt))
         text_ids, text_mask = self.tokenizer.encode(prompt)
         return {
@@ -87,6 +94,7 @@ class LeRobotPiDataset(Dataset[dict[str, Tensor]]):
             "text_ids": text_ids,
             "text_mask": text_mask,
             "actions": actions,
+            "action_mask": ~action_padding,
         }
 
 

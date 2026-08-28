@@ -21,6 +21,7 @@ class DataConfig:
     image_key: str = "observation.image"
     state_key: str = "observation.state"
     action_key: str = "action"
+    video_backend: str = "pyav"
     default_prompt: str = "push the T-shaped block to the target"
     num_workers: int = 0
 

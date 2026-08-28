@@ -39,6 +39,26 @@ pi-contract-demo
 pytest -q tests/test_contracts.py
 ```
 
+第二讲开始处理真实机器人时序数据：
+
+> [第 2 讲：从 LeRobot trajectory 得到无泄漏的训练样本](docs/lessons/02_lerobot_trajectory_to_training_sample.md)
+
+先用无需下载的 toy episode 看清窗口边界、padding、mask 和 episode split：
+
+```bash
+pi-data-window-demo
+pytest -q tests/test_data_windows.py
+```
+
+把一个真实 PushT action chunk 投影到图像上：
+
+```bash
+pip install -e '.[lerobot]'
+pi-visualize-chunk --index 100 --horizon 16
+```
+
+图片默认保存到 `outputs/lesson02/pusht_chunk.png`。
+
 ## 运行最小训练
 
 仓库目前提供一个小型 PyTorch π₀ 风格模型，包括：
@@ -69,6 +89,9 @@ pip install -e '.[dev,lerobot]'
 pi-train --dataset lerobot/pusht --steps 5 --device cuda
 ```
 
+LeRobot 的数据读取能力属于额外依赖；本项目的 `lerobot` extra 已包含官方
+`lerobot[dataset]`。当前版本要求 Python 3.12 或更高版本。
+
 目前 PushT 接口用于管线 smoke test；训练集统计量归一化、episode split 和闭环环境评估会在后续课程中加入。在这些模块完成前，不应使用上述 5-step 结果评价策略性能。
 
 PushT 只有一个固定任务，适合验证连续控制机制，但不能证明语言泛化、开放世界能力或分钟级记忆。后续高级章节会使用受控实验，并预留一个小型 LIBERO 多任务扩展。
@@ -85,7 +108,7 @@ PushT 只有一个固定任务，适合验证连续控制机制，但不能证�
    flow matching action chunk
 ```
 
-当前仓库已经包含第一讲正文、统一的 observation/action 接口、random policy 演示、小型 flow policy、synthetic 训练和测试。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
+当前仓库已经包含前两讲正文、统一的 observation/action 接口、episode-safe action window、random policy 演示、小型 flow policy、synthetic 训练和测试。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
 
 ## 项目边界
 

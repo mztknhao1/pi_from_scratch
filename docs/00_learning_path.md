@@ -65,6 +65,8 @@ flow ODE sampling
 
 交付：PushT 数据检查器、episode split、窗口边界 padding/mask、一个 batch 可视化。
 
+正文：[`lessons/02_lerobot_trajectory_to_training_sample.md`](lessons/02_lerobot_trajectory_to_training_sample.md)
+
 #### 第 3 讲：动作表征与归一化决定模型学的是什么
 
 唯一问题：absolute、delta、velocity、joint/end-effector action 以及跨 embodiment 维度如何进入统一训练接口？
