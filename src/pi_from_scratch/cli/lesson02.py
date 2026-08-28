@@ -7,7 +7,7 @@ from typing import Any
 import torch
 from torch import Tensor
 
-from pi_from_scratch.data_windows import (
+from pi_from_scratch.data.windows import (
     FutureActionWindow,
     build_future_action_window,
     split_episode_ids,

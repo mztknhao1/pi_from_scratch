@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from pi_from_scratch.data_windows import build_future_action_window, split_episode_ids
-from pi_from_scratch.model import masked_action_mse
+from pi_from_scratch.data.windows import build_future_action_window, split_episode_ids
+from pi_from_scratch.models import masked_action_mse
 
 
 def test_window_repeats_tail_but_marks_it_invalid() -> None:

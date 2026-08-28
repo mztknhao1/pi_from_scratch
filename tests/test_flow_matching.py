@@ -1,6 +1,7 @@
 import torch
 
-from pi_from_scratch.flow_matching import euler_sample, sample_flow_batch
+from pi_from_scratch.inference import euler_sample
+from pi_from_scratch.objectives import sample_flow_batch
 
 
 def test_flow_batch_shapes() -> None:

@@ -2,7 +2,7 @@ import torch
 
 from pi_from_scratch.config import ModelConfig
 from pi_from_scratch.data import SyntheticPiDataset
-from pi_from_scratch.model import TinyPi0
+from pi_from_scratch.models import TinyPi0
 
 
 def test_model_loss_and_sampling_shapes() -> None:

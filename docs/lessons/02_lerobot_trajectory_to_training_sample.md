@@ -139,7 +139,7 @@ $$
 
 只有 padding、没有 mask，是不完整的实现。模型可能学到“越接近 episode 末尾，越应该重复某个默认动作”；用零补齐时，还可能把零误解成真实控制命令。对 Transformer action expert，mask 不仅要作用于 loss，还应作为 attention padding mask，防止有效动作 token 读取补齐位置。
 
-当前代码在 [`data_windows.py`](../../src/pi_from_scratch/data_windows.py) 中显式返回：
+当前代码在 [`windows.py`](../../src/pi_from_scratch/data/windows.py) 中显式返回：
 
 ```text
 values
@@ -240,10 +240,10 @@ pi-data-window-demo --dataset lerobot/pusht --horizon 16 --index -2
 
 阅读代码时建议按下面顺序：
 
-1. [`data_windows.py`](../../src/pi_from_scratch/data_windows.py)：看 episode split 和窗口构造；
-2. [`lesson02.py`](../../src/pi_from_scratch/lesson02.py)：看 toy/LeRobot 检查器怎样把字段画成表格；
-3. [`data.py`](../../src/pi_from_scratch/data.py)：看 LeRobot 字段怎样适配到当前训练接口；
-4. [`model.py`](../../src/pi_from_scratch/model.py)：看 `action_mask` 怎样进入 attention 和 loss；
+1. [`windows.py`](../../src/pi_from_scratch/data/windows.py)：看 episode split 和窗口构造；
+2. [`lesson02.py`](../../src/pi_from_scratch/cli/lesson02.py)：看 toy/LeRobot 检查器怎样把字段画成表格；
+3. [`datasets.py`](../../src/pi_from_scratch/data/datasets.py)：看 LeRobot 字段怎样适配到当前训练接口；
+4. [`tiny_pi0.py`](../../src/pi_from_scratch/models/tiny_pi0.py)：看 `action_mask` 怎样进入 attention 和 loss；
 5. [`test_data_windows.py`](../../tests/test_data_windows.py)：看哪些时间边界被自动测试锁住。
 
 ## 八、把一个 action chunk 画到图像上
@@ -267,7 +267,7 @@ pi-visualize-chunk \
 
 如果投影约定正确，右侧 action marker 应大致落在每张图的蓝色圆形执行器上。这个检查非常有价值：shape、mask 和 loss 都可能正常，但错误的 x/y 顺序、图像缩放或坐标方向会让投影点系统性偏离机器人。
 
-可视化代码在 [`visualize_chunk.py`](../../src/pi_from_scratch/visualize_chunk.py)。这里的线性投影是 PushT 特有的，因为它的 action 与俯视图共享同一个二维工作区。真实机械臂若要把末端三维轨迹画到相机图像上，需要相机内参、相机外参以及坐标系变换，不能直接照搬这个比例缩放。
+可视化代码在 [`visualize_chunk.py`](../../src/pi_from_scratch/cli/visualize_chunk.py)。这里的线性投影是 PushT 特有的，因为它的 action 与俯视图共享同一个二维工作区。真实机械臂若要把末端三维轨迹画到相机图像上，需要相机内参、相机外参以及坐标系变换，不能直接照搬这个比例缩放。
 
 ## 九、这一讲刻意没有做什么？
 

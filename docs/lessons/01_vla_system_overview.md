@@ -295,7 +295,7 @@ pytest -q tests/test_contracts.py
 1. [`contracts.py`](../../src/pi_from_scratch/contracts.py)：看四个对象分别保存什么；
 2. [`protocol.py`](../../src/pi_from_scratch/policies/protocol.py)：看 runtime 唯一依赖的 policy 方法；
 3. [`random_policy.py`](../../src/pi_from_scratch/policies/random_policy.py)：看一个完全不懂 VLA 的实现怎样满足接口；
-4. [`lesson01.py`](../../src/pi_from_scratch/lesson01.py)：看三次最小闭环怎样串起来。
+4. [`lesson01.py`](../../src/pi_from_scratch/cli/lesson01.py)：看三次最小闭环怎样串起来。
 
 ## 七、回到全景：这一讲真正建立了什么？
 

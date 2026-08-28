@@ -1,6 +1,6 @@
 # 目标代码架构与仿真验证蓝图
 
-本文件定义目标边界。当前 M0 的扁平代码可以继续运行，后续按讲次渐进迁移，不进行一次性大重写。
+本文件定义目标边界。当前代码已先按 `data`、`representations`、`models`、`objectives`、`inference`、`policies` 和 `cli` 分层；runtime、environment、evaluation 与 memory 等目录仍按讲次在真正需要时加入，不预先创建空壳。
 
 ## 1. 目标目录
 
@@ -182,11 +182,10 @@ videos/
 checkpoint/             # 仅训练任务
 ```
 
-## 7. 近期重构顺序
+## 7. 近期实现顺序
 
-1. 先冻结数据契约和验证命令，不移动现有模型代码。
-2. 完成 M1 的 LeRobot inspector、episode split、normalizer 和 action transform。
-3. 将当前 `flow_matching.py` 拆到 `objectives/` 与 `inference/`，用解析测试锁定时间方向。
-4. 增加统一 `Policy` adapter 与同步 PushT runner。
-5. 加入 latency wrapper 和 async runtime，再单独实现 RTC。
-6. 基线稳定后才进入 FAST、π₀.₅–π₀.₇ 和 MEM，避免高级目标掩盖数据/执行错误。
+1. 在现有 LeRobot inspector、episode split 和窗口 mask 上继续加入 normalizer 与 action transform。
+2. 用解析测试锁定 `objectives/flow_matching.py` 与 `inference/flow_sampling.py` 的时间方向。
+3. 增加统一 `Policy` adapter 与同步 PushT runner。
+4. 加入 latency wrapper 和 async runtime，再单独实现 RTC。
+5. 基线稳定后才进入 FAST、π₀.₅–π₀.₇ 和 MEM，避免高级目标掩盖数据/执行错误。

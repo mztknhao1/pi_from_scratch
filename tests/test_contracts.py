@@ -1,13 +1,13 @@
 import pytest
 import torch
 
+from pi_from_scratch.cli.lesson01 import make_observation, run_contract_probe
 from pi_from_scratch.contracts import (
     ActionChunk,
     ActionRepresentation,
     ActionSpec,
     ObservationBatch,
 )
-from pi_from_scratch.lesson01 import make_observation, run_contract_probe
 from pi_from_scratch.policies.protocol import Policy
 from pi_from_scratch.policies.random_policy import RandomPolicy
 

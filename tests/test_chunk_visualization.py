@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from pi_from_scratch.visualize_chunk import project_workspace_xy, select_timeline_slots
+from pi_from_scratch.cli.visualize_chunk import project_workspace_xy, select_timeline_slots
 
 
 def test_project_workspace_corners_to_image() -> None:

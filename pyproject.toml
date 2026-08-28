@@ -20,10 +20,10 @@ lerobot = ["lerobot[dataset]>=0.6,<0.7"]
 dev = ["pytest>=8.0", "ruff>=0.8"]
 
 [project.scripts]
-pi-contract-demo = "pi_from_scratch.lesson01:main"
-pi-data-window-demo = "pi_from_scratch.lesson02:main"
-pi-visualize-chunk = "pi_from_scratch.visualize_chunk:main"
-pi-train = "pi_from_scratch.train:main"
+pi-contract-demo = "pi_from_scratch.cli.lesson01:main"
+pi-data-window-demo = "pi_from_scratch.cli.lesson02:main"
+pi-visualize-chunk = "pi_from_scratch.cli.visualize_chunk:main"
+pi-train = "pi_from_scratch.cli.train:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pi_from_scratch"]

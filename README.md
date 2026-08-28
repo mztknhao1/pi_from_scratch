@@ -59,6 +59,25 @@ pi-visualize-chunk --index 100 --horizon 16
 
 图片默认保存到 `outputs/lesson02/pusht_chunk.png`。
 
+## 代码目录
+
+代码按职责分层，课程命令只负责把这些模块串起来：
+
+```text
+src/pi_from_scratch/
+├── data/             # LeRobot adapter、episode split、时间窗口与 mask
+├── representations/  # 文本与动作表示；后续加入 action transform、FAST tokenizer
+├── models/           # tiny π₀ 等模型结构
+├── objectives/       # flow matching 等训练目标
+├── inference/        # Euler solver 等动作采样算法，不管理环境时钟
+├── policies/         # 面向 runtime 的统一 policy 接口
+├── cli/              # 各讲实验、训练和可视化命令入口
+├── config.py         # 当前 Python 配置对象
+└── contracts.py      # 跨模块共享的 observation/action 契约
+```
+
+后续 runtime、environment、evaluation 和 memory 会在对应课程真正需要时加入，不预先创建空目录。
+
 ## 运行最小训练
 
 仓库目前提供一个小型 PyTorch π₀ 风格模型，包括：

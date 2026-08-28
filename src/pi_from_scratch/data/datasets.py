@@ -6,7 +6,7 @@ from torch import Tensor
 from torch.utils.data import Dataset
 
 from pi_from_scratch.config import DataConfig, ModelConfig
-from pi_from_scratch.text import HashTokenizer
+from pi_from_scratch.representations import HashTokenizer
 
 
 class SyntheticPiDataset(Dataset[dict[str, Tensor]]):

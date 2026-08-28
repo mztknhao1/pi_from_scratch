@@ -5,7 +5,8 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 
 from pi_from_scratch.config import ModelConfig
-from pi_from_scratch.flow_matching import euler_sample, sample_flow_batch
+from pi_from_scratch.inference import euler_sample
+from pi_from_scratch.objectives import sample_flow_batch
 
 
 def masked_action_mse(predicted: Tensor, target: Tensor, valid_mask: Tensor) -> Tensor:

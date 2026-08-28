@@ -10,7 +10,7 @@ from tqdm import trange
 
 from pi_from_scratch.config import DataConfig, ModelConfig, TrainConfig
 from pi_from_scratch.data import create_dataset
-from pi_from_scratch.model import TinyPi0
+from pi_from_scratch.models import TinyPi0
 
 
 def move_to_device(batch: dict[str, torch.Tensor], device: torch.device) -> dict[str, torch.Tensor]:

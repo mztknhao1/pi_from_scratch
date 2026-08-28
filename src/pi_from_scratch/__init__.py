@@ -9,7 +9,7 @@ from pi_from_scratch.contracts import (
     ObservationBatch,
     PolicyOutput,
 )
-from pi_from_scratch.model import TinyPi0
+from pi_from_scratch.models import TinyPi0
 
 __all__ = [
     "ActionChunk",
