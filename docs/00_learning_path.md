@@ -73,11 +73,15 @@ flow ODE sampling
 
 交付：可逆 action transform、仅由 train split 计算的统计量、round-trip 与分布检查。
 
+正文：[`lessons/03_action_representation_and_normalization.md`](lessons/03_action_representation_and_normalization.md)
+
 #### 第 4 讲：Action chunk 改变了训练目标，也改变了执行方式
 
 唯一问题：为什么预测未来 `H` 步，以及 horizon、control frequency、execution horizon 之间是什么关系？
 
 交付：单步与 chunk 数据样本对比；同步 chunk executor；边界连续性指标。
+
+正文：[`lessons/04_action_chunk_prediction_and_execution.md`](lessons/04_action_chunk_prediction_and_execution.md)
 
 ### 第二部分：π₀ 的训练与推理
 

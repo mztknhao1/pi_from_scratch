@@ -59,6 +59,26 @@ pi-visualize-chunk --index 100 --horizon 16
 
 图片默认保存到 `outputs/lesson02/pusht_chunk.png`。
 
+第三讲继续确认 action 数字的物理语义和模型尺度：
+
+> [第 3 讲：动作表征与归一化——模型究竟在预测什么数字？](docs/lessons/03_action_representation_and_normalization.md)
+
+运行可逆 action transform 与 train-only normalization 实验：
+
+```bash
+pi-action-transform-demo
+pytest -q tests/test_action_transforms.py
+```
+
+第四讲把 action chunk 从训练 target 接到同步执行时间线：
+
+> [第 4 讲：Action chunk——一次预测多少步，又执行多少步？](docs/lessons/04_action_chunk_prediction_and_execution.md)
+
+```bash
+pi-chunk-execution-demo
+pytest -q tests/test_chunk_execution.py
+```
+
 ## 代码目录
 
 代码按职责分层，课程命令只负责把这些模块串起来：
@@ -71,6 +91,7 @@ src/pi_from_scratch/
 ├── objectives/       # flow matching 等训练目标
 ├── inference/        # Euler solver 等动作采样算法，不管理环境时钟
 ├── policies/         # 面向 runtime 的统一 policy 接口
+├── runtime/          # 同步 chunk 执行；后续加入 buffer、异步调度与 RTC
 ├── cli/              # 各讲实验、训练和可视化命令入口
 ├── config.py         # 当前 Python 配置对象
 └── contracts.py      # 跨模块共享的 observation/action 契约
@@ -111,7 +132,7 @@ pi-train --dataset lerobot/pusht --steps 5 --device cuda
 LeRobot 的数据读取能力属于额外依赖；本项目的 `lerobot` extra 已包含官方
 `lerobot[dataset]`。当前版本要求 Python 3.12 或更高版本。
 
-目前 PushT 接口用于管线 smoke test；训练集统计量归一化、episode split 和闭环环境评估会在后续课程中加入。在这些模块完成前，不应使用上述 5-step 结果评价策略性能。
+目前 PushT 接口用于管线 smoke test；episode split、action transform 和归一化的独立模块已经完成，但尚未接入训练 CLI，闭环环境评估也还未加入。在这些模块接通前，不应使用上述 5-step 结果评价策略性能。
 
 PushT 只有一个固定任务，适合验证连续控制机制，但不能证明语言泛化、开放世界能力或分钟级记忆。后续高级章节会使用受控实验，并预留一个小型 LIBERO 多任务扩展。
 
@@ -127,7 +148,7 @@ PushT 只有一个固定任务，适合验证连续控制机制，但不能证�
    flow matching action chunk
 ```
 
-当前仓库已经包含前两讲正文、统一的 observation/action 接口、episode-safe action window、random policy 演示、小型 flow policy、synthetic 训练和测试。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
+当前仓库已经包含前四讲正文、统一的 observation/action 接口、episode-safe action window、可逆动作变换与 train-only normalization、同步 action-chunk executor、random policy 演示、小型 flow policy、synthetic 训练和测试。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
 
 ## 项目边界
 
