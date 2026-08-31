@@ -1,23 +1,16 @@
 import math
 
 import torch
-import torch.nn.functional as F
 from torch import Tensor, nn
 
 from pi_from_scratch.config import ModelConfig
 from pi_from_scratch.inference import euler_sample
-from pi_from_scratch.objectives import sample_flow_batch
+from pi_from_scratch.objectives import masked_flow_matching_loss, sample_flow_batch
 
 
 def masked_action_mse(predicted: Tensor, target: Tensor, valid_mask: Tensor) -> Tensor:
-    """Average action error over valid timesteps only."""
-    if predicted.shape != target.shape or predicted.ndim != 3:
-        raise ValueError("predicted and target must share shape [batch, horizon, action_dim]")
-    if valid_mask.shape != predicted.shape[:2] or valid_mask.dtype != torch.bool:
-        raise ValueError("valid_mask must be bool with shape [batch, horizon]")
-    per_step = F.mse_loss(predicted, target, reduction="none").mean(dim=-1)
-    weights = valid_mask.to(per_step.dtype)
-    return (per_step * weights).sum() / weights.sum().clamp_min(1.0)
+    """Backward-compatible name for the masked per-step vector MSE."""
+    return masked_flow_matching_loss(predicted, target, valid_mask)
 
 
 def sinusoidal_time_embedding(time: Tensor, width: int) -> Tensor:
@@ -112,13 +105,26 @@ class TinyPi0(nn.Module):
         condition = self.encode_condition(
             batch["image"], batch["state"], batch["text_ids"], batch["text_mask"]
         )
-        noisy_actions, time, target_velocity = sample_flow_batch(batch["actions"].float())
+        flow_batch = sample_flow_batch(batch["actions"].float())
         action_mask = batch.get(
             "action_mask",
-            torch.ones(noisy_actions.shape[:2], dtype=torch.bool, device=noisy_actions.device),
+            torch.ones(
+                flow_batch.noisy_actions.shape[:2],
+                dtype=torch.bool,
+                device=flow_batch.noisy_actions.device,
+            ),
         )
-        predicted_velocity = self.predict_velocity(noisy_actions, time, condition, action_mask)
-        return masked_action_mse(predicted_velocity, target_velocity, action_mask)
+        predicted_velocity = self.predict_velocity(
+            flow_batch.noisy_actions,
+            flow_batch.time,
+            condition,
+            action_mask,
+        )
+        return masked_flow_matching_loss(
+            predicted_velocity,
+            flow_batch.target_velocity,
+            action_mask,
+        )
 
     @torch.no_grad()
     def sample_actions(self, batch: dict[str, Tensor], num_steps: int = 10) -> Tensor:

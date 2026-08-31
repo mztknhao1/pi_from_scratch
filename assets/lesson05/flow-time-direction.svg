@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760" role="img" aria-labelledby="title desc">
+  <title id="title">Conditional Flow Matching 的训练与采样时间方向</title>
+  <desc id="desc">上半部分从 t=0 的真实动作走向 t=1 的噪声并构造训练监督，下半部分从噪声开始，以负时间步积分回真实动作。</desc>
+  <defs>
+    <linearGradient id="pathGradient" x1="0" x2="1">
+      <stop offset="0" stop-color="#2f9e76"/>
+      <stop offset="0.52" stop-color="#8b6bc6"/>
+      <stop offset="1" stop-color="#6c7a91"/>
+    </linearGradient>
+    <marker id="arrowRight" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#4b5563"/>
+    </marker>
+    <marker id="arrowLeft" markerWidth="12" markerHeight="12" refX="2" refY="6" orient="auto">
+      <path d="M12,0 L0,6 L12,12 Z" fill="#2f9e76"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#1f2937" flood-opacity="0.13"/>
+    </filter>
+  </defs>
+
+  <rect width="1400" height="760" rx="28" fill="#fbfaf7"/>
+  <text x="70" y="70" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="36" font-weight="600" fill="#1f2937">同一条 flow path，两种运行方向</text>
+  <text x="70" y="108" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="21" fill="#667085">openpi 约定：t=0 是 action data，t=1 是 Gaussian noise</text>
+
+  <rect x="55" y="145" width="1290" height="245" rx="22" fill="#ffffff" stroke="#ddd8ce" filter="url(#shadow)"/>
+  <text x="90" y="195" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="28" font-weight="600" fill="#7a4eb2">训练：随机抽一段路径上的点，回归它的速度</text>
+  <line x1="210" y1="285" x2="1190" y2="285" stroke="url(#pathGradient)" stroke-width="14" stroke-linecap="round" marker-end="url(#arrowRight)"/>
+  <circle cx="210" cy="285" r="34" fill="#2f9e76" stroke="#ffffff" stroke-width="6"/>
+  <circle cx="455" cy="285" r="25" fill="#5d8f9f" stroke="#ffffff" stroke-width="5"/>
+  <circle cx="700" cy="285" r="25" fill="#806fc1" stroke="#ffffff" stroke-width="5"/>
+  <circle cx="945" cy="285" r="25" fill="#77758e" stroke="#ffffff" stroke-width="5"/>
+  <circle cx="1190" cy="285" r="34" fill="#6c7a91" stroke="#ffffff" stroke-width="6"/>
+  <text x="210" y="345" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="23" font-weight="600" fill="#23755a">t=0 真实 action A</text>
+  <text x="455" y="335" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="19" fill="#475467">t=0.25</text>
+  <text x="700" y="335" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="19" fill="#475467">随机训练点 Aₜ</text>
+  <text x="945" y="335" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="19" fill="#475467">t=0.75</text>
+  <text x="1190" y="345" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="23" font-weight="600" fill="#536174">t=1 noise ε</text>
+  <rect x="520" y="210" width="360" height="48" rx="24" fill="#f0eafb"/>
+  <text x="700" y="242" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="21" fill="#6d45a3">监督目标 uₜ = ε − A</text>
+
+  <rect x="55" y="425" width="1290" height="270" rx="22" fill="#ffffff" stroke="#ddd8ce" filter="url(#shadow)"/>
+  <text x="90" y="475" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="28" font-weight="600" fill="#23755a">采样：从 noise 出发，沿负时间方向积分回 action</text>
+  <line x1="1190" y1="570" x2="210" y2="570" stroke="url(#pathGradient)" stroke-width="14" stroke-linecap="round" marker-end="url(#arrowLeft)"/>
+  <circle cx="210" cy="570" r="34" fill="#2f9e76" stroke="#ffffff" stroke-width="6"/>
+  <circle cx="455" cy="570" r="25" fill="#5d8f9f" stroke="#ffffff" stroke-width="5"/>
+  <circle cx="700" cy="570" r="25" fill="#806fc1" stroke="#ffffff" stroke-width="5"/>
+  <circle cx="945" cy="570" r="25" fill="#77758e" stroke="#ffffff" stroke-width="5"/>
+  <circle cx="1190" cy="570" r="34" fill="#6c7a91" stroke="#ffffff" stroke-width="6"/>
+  <text x="210" y="635" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="23" font-weight="600" fill="#23755a">输出 action A₀</text>
+  <text x="700" y="635" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="21" fill="#475467">每一步查询 vθ(Aₜ, t, o)</text>
+  <text x="1190" y="635" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="23" font-weight="600" fill="#536174">输入 noise A₁</text>
+  <rect x="565" y="495" width="270" height="48" rx="24" fill="#e7f6ef"/>
+  <text x="700" y="527" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="21" fill="#23755a">Euler step：Δt &lt; 0</text>
+
+  <text x="700" y="733" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif" font-size="20" fill="#667085">训练 target 的符号与采样 Δt 的符号必须成套匹配</text>
+</svg>

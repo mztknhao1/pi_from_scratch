@@ -79,6 +79,15 @@ pi-chunk-execution-demo
 pytest -q tests/test_chunk_execution.py
 ```
 
+第五讲固定 π₀ flow matching 的 path、target velocity 和时间方向：
+
+> [第 5 讲：让模型学会把噪声推回动作——Conditional Flow Matching](docs/lessons/05_conditional_flow_matching.md)
+
+```bash
+pi-flow-matching-demo
+pytest -q tests/test_flow_matching.py
+```
+
 ## 代码目录
 
 代码按职责分层，课程命令只负责把这些模块串起来：
@@ -148,7 +157,7 @@ PushT 只有一个固定任务，适合验证连续控制机制，但不能证�
    flow matching action chunk
 ```
 
-当前仓库已经包含前四讲正文、统一的 observation/action 接口、episode-safe action window、可逆动作变换与 train-only normalization、同步 action-chunk executor、random policy 演示、小型 flow policy、synthetic 训练和测试。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
+当前仓库已经包含前五讲正文、统一的 observation/action 接口、episode-safe action window、可逆动作变换与 train-only normalization、同步 action-chunk executor、conditional flow-matching objective、random policy 演示、小型 flow policy、synthetic 训练和测试。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
 
 ## 项目边界
 

@@ -91,6 +91,8 @@ flow ODE sampling
 
 交付：最小 flow objective、解析 toy test、tiny-set overfit。
 
+正文：[`lessons/05_conditional_flow_matching.md`](lessons/05_conditional_flow_matching.md)
+
 #### 第 6 讲：π₀ 为什么需要 VLM backbone 和 action expert
 
 唯一问题：语义 observation prefix 如何条件化连续 action suffix，同时避免破坏预训练 VLM 的职责边界？
