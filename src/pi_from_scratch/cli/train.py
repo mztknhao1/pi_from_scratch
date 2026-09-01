@@ -1,76 +1,47 @@
+"""Command-line entry point for the reusable tiny-policy trainer."""
+
 import argparse
-import random
 from dataclasses import replace
 from pathlib import Path
 
-import numpy as np
 import torch
-from torch.utils.data import DataLoader
-from tqdm import trange
 
 from pi_from_scratch.config import DataConfig, ModelConfig, TrainConfig
-from pi_from_scratch.data import create_dataset
-from pi_from_scratch.models import TinyPi0
-
-
-def move_to_device(batch: dict[str, torch.Tensor], device: torch.device) -> dict[str, torch.Tensor]:
-    return {key: value.to(device) for key, value in batch.items()}
+from pi_from_scratch.training import TrainingResult, train_experiment
 
 
 def train(config: TrainConfig, device_name: str) -> Path:
-    random.seed(config.seed)
-    np.random.seed(config.seed)
-    torch.manual_seed(config.seed)
-    device = torch.device(device_name)
-
-    dataset = create_dataset(config.data, config.model)
-    loader = DataLoader(
-        dataset,
-        batch_size=config.batch_size,
-        shuffle=True,
-        num_workers=config.data.num_workers,
-        drop_last=True,
-    )
-    batches = iter(loader)
-    model = TinyPi0(config.model).to(device)
-    optimizer = torch.optim.AdamW(
-        model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay
-    )
-    output_dir = Path(config.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    model.train()
-    progress = trange(1, config.steps + 1, desc="training")
-    for step in progress:
-        try:
-            batch = next(batches)
-        except StopIteration:
-            batches = iter(loader)
-            batch = next(batches)
-        batch = move_to_device(batch, device)
-        loss = model.loss(batch)
-        optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        optimizer.step()
-        if step == 1 or step % config.log_every == 0:
-            progress.set_postfix(loss=f"{loss.item():.4f}")
-        if step % config.save_every == 0 or step == config.steps:
-            torch.save(
-                {"step": step, "model": model.state_dict(), "config": config},
-                output_dir / f"checkpoint_{step:06d}.pt",
-            )
-    return output_dir / f"checkpoint_{config.steps:06d}.pt"
+    """Backward-compatible wrapper returning the final checkpoint path."""
+    return train_experiment(config, device_name).checkpoint_path
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train the tiny π0 teaching model")
     parser.add_argument("--dataset", default="synthetic")
+    parser.add_argument("--dataset-revision", default="v3.0")
     parser.add_argument("--steps", type=int, default=1_000)
     parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--eval-every", type=int, default=100)
+    parser.add_argument("--overfit-samples", type=int)
+    parser.add_argument("--sampling-steps", type=int, default=10)
+    parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--output-dir", default="outputs/debug")
     return parser.parse_args()
+
+
+def _print_result(result: TrainingResult) -> None:
+    print("training diagnostics")
+    print(f"  fixed train flow loss:      {result.initial_train_loss:.6f} -> {result.final_train_loss:.6f}")
+    print(
+        "  fixed validation flow loss: "
+        f"{result.initial_validation_loss:.6f} -> {result.final_validation_loss:.6f}"
+    )
+    print(f"  validation action MAE:      {result.validation_action_mae:.6f}")
+    print(f"  checkpoint:                 {result.checkpoint_path}")
+    print(f"  metrics:                    {result.metrics_path}")
+    print(f"  loss curve:                 {result.loss_curve_path}")
+    print(f"  trajectory:                 {result.trajectory_path}")
 
 
 def main() -> None:
@@ -80,13 +51,16 @@ def main() -> None:
         model = replace(model, state_dim=2, action_dim=2)
     config = TrainConfig(
         model=model,
-        data=DataConfig(dataset=args.dataset),
+        data=DataConfig(dataset=args.dataset, dataset_revision=args.dataset_revision),
         steps=args.steps,
         batch_size=args.batch_size,
+        eval_every=args.eval_every,
+        overfit_samples=args.overfit_samples,
+        sampling_steps=args.sampling_steps,
+        seed=args.seed,
         output_dir=args.output_dir,
     )
-    checkpoint = train(config, args.device)
-    print(f"saved checkpoint: {checkpoint}")
+    _print_result(train_experiment(config, args.device))
 
 
 if __name__ == "__main__":

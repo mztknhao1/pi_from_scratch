@@ -18,12 +18,16 @@ class ModelConfig:
 @dataclass(frozen=True)
 class DataConfig:
     dataset: str = "synthetic"
+    dataset_revision: str = "v3.0"
     image_key: str = "observation.image"
     state_key: str = "observation.state"
     action_key: str = "action"
     video_backend: str = "pyav"
     default_prompt: str = "push the T-shaped block to the target"
     num_workers: int = 0
+    validation_fraction: float = 0.2
+    synthetic_num_episodes: int = 6
+    synthetic_episode_length: int = 8
 
 
 @dataclass(frozen=True)
@@ -35,6 +39,10 @@ class TrainConfig:
     weight_decay: float = 1e-4
     steps: int = 1_000
     log_every: int = 20
+    eval_every: int = 100
     save_every: int = 500
+    max_eval_batches: int = 8
+    sampling_steps: int = 10
+    overfit_samples: int | None = None
     seed: int = 7
     output_dir: str = "outputs/debug"

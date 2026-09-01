@@ -107,6 +107,8 @@ flow ODE sampling
 
 交付：固定配置训练、过拟合基准、validation loss、预测轨迹可视化和失败诊断。
 
+正文：[`lessons/07_training_a_tiny_pi0_policy.md`](lessons/07_training_a_tiny_pi0_policy.md)
+
 #### 第 8 讲：Flow policy 的推理是一个数值积分问题
 
 唯一问题：如何从噪声生成 action chunk，以及 solver steps、速度、误差和随机性如何权衡？

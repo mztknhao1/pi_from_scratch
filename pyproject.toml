@@ -26,6 +26,7 @@ pi-action-transform-demo = "pi_from_scratch.cli.lesson03:main"
 pi-chunk-execution-demo = "pi_from_scratch.cli.lesson04:main"
 pi-flow-matching-demo = "pi_from_scratch.cli.lesson05:main"
 pi-prefix-suffix-demo = "pi_from_scratch.cli.lesson06:main"
+pi-training-demo = "pi_from_scratch.cli.lesson07:main"
 pi-visualize-chunk = "pi_from_scratch.cli.visualize_chunk:main"
 pi-train = "pi_from_scratch.cli.train:main"
 

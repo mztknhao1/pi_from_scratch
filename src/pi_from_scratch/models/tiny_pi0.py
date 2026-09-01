@@ -122,11 +122,17 @@ class TinyPi0(nn.Module):
             return velocity, layout
         return velocity
 
-    def loss(self, batch: dict[str, Tensor]) -> Tensor:
+    def loss(
+        self,
+        batch: dict[str, Tensor],
+        *,
+        noise: Tensor | None = None,
+        time: Tensor | None = None,
+    ) -> Tensor:
         prefix_tokens, prefix_mask = self.encode_prefix(
             batch["image"], batch["text_ids"], batch["text_mask"]
         )
-        flow_batch = sample_flow_batch(batch["actions"].float())
+        flow_batch = sample_flow_batch(batch["actions"].float(), noise=noise, time=time)
         action_mask = batch.get(
             "action_mask",
             torch.ones(
@@ -151,7 +157,13 @@ class TinyPi0(nn.Module):
         )
 
     @torch.no_grad()
-    def sample_actions(self, batch: dict[str, Tensor], num_steps: int = 10) -> Tensor:
+    def sample_actions(
+        self,
+        batch: dict[str, Tensor],
+        num_steps: int = 10,
+        *,
+        noise: Tensor | None = None,
+    ) -> Tensor:
         prefix_tokens, prefix_mask = self.encode_prefix(
             batch["image"], batch["text_ids"], batch["text_mask"]
         )
@@ -171,4 +183,5 @@ class TinyPi0(nn.Module):
             shape,
             device=batch["state"].device,
             num_steps=num_steps,
+            noise=noise,
         )

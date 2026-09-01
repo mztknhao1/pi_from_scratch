@@ -1,6 +1,12 @@
 """Dataset adapters and episode-safe temporal window utilities."""
 
-from pi_from_scratch.data.datasets import LeRobotPiDataset, SyntheticPiDataset, create_dataset
+from pi_from_scratch.data.datasets import (
+    DatasetSplits,
+    LeRobotPiDataset,
+    SyntheticPiDataset,
+    create_dataset,
+    create_dataset_splits,
+)
 from pi_from_scratch.data.windows import (
     EpisodeSplit,
     FutureActionWindow,
@@ -9,11 +15,13 @@ from pi_from_scratch.data.windows import (
 )
 
 __all__ = [
+    "DatasetSplits",
     "EpisodeSplit",
     "FutureActionWindow",
     "LeRobotPiDataset",
     "SyntheticPiDataset",
     "build_future_action_window",
     "create_dataset",
+    "create_dataset_splits",
     "split_episode_ids",
 ]

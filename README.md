@@ -97,6 +97,15 @@ pi-prefix-suffix-demo
 pytest -q tests/test_prefix_suffix.py tests/test_model.py
 ```
 
+第七讲把前面的模块组装成可诊断训练，并用固定 flow bank 区分“能运行、能过拟合、能泛化”：
+
+> [第 7 讲：让 TinyPi0 真正学起来——从反向传播到可诊断训练](docs/lessons/07_training_a_tiny_pi0_policy.md)
+
+```bash
+pi-training-demo
+pytest -q tests/test_training.py tests/test_model.py
+```
+
 ## 代码目录
 
 代码按职责分层，课程命令只负责把这些模块串起来：
@@ -107,6 +116,8 @@ src/pi_from_scratch/
 ├── representations/  # 文本与动作表示；后续加入 action transform、FAST tokenizer
 ├── models/           # tiny π₀ 等模型结构
 ├── objectives/       # flow matching 等训练目标
+├── training/         # split、normalization、训练循环、固定评估与 checkpoint
+├── evaluation/       # loss curve 与离线 action trajectory 可视化
 ├── inference/        # Euler solver 等动作采样算法，不管理环境时钟
 ├── policies/         # 面向 runtime 的统一 policy 接口
 ├── runtime/          # 同步 chunk 执行；后续加入 buffer、异步调度与 RTC
@@ -115,7 +126,7 @@ src/pi_from_scratch/
 └── contracts.py      # 跨模块共享的 observation/action 契约
 ```
 
-后续 runtime、environment、evaluation 和 memory 会在对应课程真正需要时加入，不预先创建空目录。
+后续 environment、异步 runtime 和 memory 会在对应课程真正需要时加入，不预先创建空目录。
 
 ## 运行最小训练
 
@@ -150,7 +161,7 @@ pi-train --dataset lerobot/pusht --steps 5 --device cuda
 LeRobot 的数据读取能力属于额外依赖；本项目的 `lerobot` extra 已包含官方
 `lerobot[dataset]`。当前版本要求 Python 3.12 或更高版本。
 
-目前 PushT 接口用于管线 smoke test；episode split、action transform 和归一化的独立模块已经完成，但尚未接入训练 CLI，闭环环境评估也还未加入。在这些模块接通前，不应使用上述 5-step 结果评价策略性能。
+目前 PushT 接口用于管线 smoke test；episode split 与 train-only action normalization 已接入训练 CLI。state normalization、显式 action representation transform 和闭环环境评估仍未加入，因此不应使用上述 5-step 结果评价策略性能。
 
 PushT 只有一个固定任务，适合验证连续控制机制，但不能证明语言泛化、开放世界能力或分钟级记忆。后续高级章节会使用受控实验，并预留一个小型 LIBERO 多任务扩展。
 
@@ -166,7 +177,7 @@ PushT 只有一个固定任务，适合验证连续控制机制，但不能证�
    flow matching action chunk
 ```
 
-当前仓库已经包含前六讲正文、统一的 observation/action 接口、episode-safe action window、可逆动作变换与 train-only normalization、同步 action-chunk executor、conditional flow-matching objective、prefix/suffix attention、双专家教学模型、synthetic 训练和测试。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
+当前仓库已经包含前七讲正文、统一的 observation/action 接口、episode-safe action window、可逆动作变换与 train-only normalization、同步 action-chunk executor、conditional flow-matching objective、prefix/suffix attention、双专家教学模型、可诊断训练、固定 train/validation flow bank、checkpoint 和离线轨迹图。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
 
 ## 项目边界
 
