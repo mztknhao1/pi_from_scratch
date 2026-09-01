@@ -5,6 +5,11 @@ from torch import Tensor, nn
 
 from pi_from_scratch.config import ModelConfig
 from pi_from_scratch.inference import euler_sample
+from pi_from_scratch.models.prefix_suffix import (
+    Pi0AttentionLayout,
+    TwoExpertTransformer,
+    make_pi0_attention_layout,
+)
 from pi_from_scratch.objectives import masked_flow_matching_loss, sample_flow_batch
 
 
@@ -32,11 +37,11 @@ class ImageEncoder(nn.Module):
             nn.SiLU(),
             nn.Conv2d(64, width, kernel_size=3, stride=2, padding=1),
             nn.SiLU(),
-            nn.AdaptiveAvgPool2d(1),
+            nn.AdaptiveAvgPool2d((2, 2)),
         )
 
     def forward(self, image: Tensor) -> Tensor:
-        return self.net(image).flatten(1)
+        return self.net(image).flatten(2).transpose(1, 2)
 
 
 class TinyPi0(nn.Module):
@@ -48,62 +53,78 @@ class TinyPi0(nn.Module):
         width = config.width
         self.image_encoder = ImageEncoder(width)
         self.text_embedding = nn.Embedding(config.vocab_size, width, padding_idx=0)
-        self.state_encoder = nn.Sequential(nn.Linear(config.state_dim, width), nn.SiLU())
-        self.condition = nn.Sequential(nn.Linear(3 * width, width), nn.SiLU())
+        self.state_input = nn.Linear(config.state_dim, width)
         self.action_input = nn.Linear(config.action_dim, width)
         self.time_mlp = nn.Sequential(nn.Linear(width, width), nn.SiLU(), nn.Linear(width, width))
         self.position = nn.Parameter(torch.randn(config.action_horizon, width) * 0.02)
-        layer = nn.TransformerEncoderLayer(
-            d_model=width,
-            nhead=config.num_heads,
-            dim_feedforward=4 * width,
+        self.transformer = TwoExpertTransformer(
+            width=width,
+            num_heads=config.num_heads,
+            num_layers=config.num_layers,
             dropout=config.dropout,
-            activation="gelu",
-            batch_first=True,
-            norm_first=True,
         )
-        self.action_expert = nn.TransformerEncoder(layer, num_layers=config.num_layers)
         self.action_output = nn.Linear(width, config.action_dim)
 
-    def encode_condition(
-        self, image: Tensor, state: Tensor, text_ids: Tensor, text_mask: Tensor
-    ) -> Tensor:
+    def encode_prefix(
+        self, image: Tensor, text_ids: Tensor, text_mask: Tensor
+    ) -> tuple[Tensor, Tensor]:
         image = image.float()
         if image.max() > 1.0:
             image = image / 255.0
-        image_feature = self.image_encoder(image)
+        image_tokens = self.image_encoder(image)
         text_tokens = self.text_embedding(text_ids)
-        weights = text_mask.unsqueeze(-1).to(text_tokens.dtype)
-        text_feature = (text_tokens * weights).sum(1) / weights.sum(1).clamp_min(1.0)
-        state_feature = self.state_encoder(state.float())
-        return self.condition(torch.cat((image_feature, text_feature, state_feature), dim=-1))
+        image_mask = torch.ones(image_tokens.shape[:2], dtype=torch.bool, device=image.device)
+        prefix_tokens = torch.cat((image_tokens, text_tokens), dim=1)
+        prefix_mask = torch.cat((image_mask, text_mask), dim=1)
+        return prefix_tokens, prefix_mask
+
+    def embed_suffix(
+        self,
+        state: Tensor,
+        noisy_actions: Tensor,
+        time: Tensor,
+    ) -> Tensor:
+        horizon = noisy_actions.shape[1]
+        if horizon > self.config.action_horizon:
+            raise ValueError("action chunk is longer than configured action_horizon")
+        state_token = self.state_input(state.float())[:, None]
+        action_tokens = self.action_input(noisy_actions) + self.position[:horizon]
+        time_tokens = self.time_mlp(sinusoidal_time_embedding(time, self.config.width))[:, None]
+        action_tokens = action_tokens + time_tokens
+        return torch.cat((state_token, action_tokens), dim=1)
 
     def predict_velocity(
         self,
         noisy_actions: Tensor,
         time: Tensor,
-        condition: Tensor,
+        prefix_tokens: Tensor,
+        prefix_mask: Tensor,
+        state: Tensor,
         valid_mask: Tensor | None = None,
-    ) -> Tensor:
+        *,
+        return_layout: bool = False,
+    ) -> Tensor | tuple[Tensor, Pi0AttentionLayout]:
         horizon = noisy_actions.shape[1]
-        if horizon > self.config.action_horizon:
-            raise ValueError("action chunk is longer than configured action_horizon")
         if valid_mask is not None and (
             valid_mask.shape != noisy_actions.shape[:2] or valid_mask.dtype != torch.bool
         ):
             raise ValueError("valid_mask must be bool with shape [batch, horizon]")
-        tokens = self.action_input(noisy_actions)
-        tokens = tokens + self.position[:horizon]
-        tokens = tokens + self.time_mlp(sinusoidal_time_embedding(time, self.config.width))[:, None]
-        tokens = tokens + condition[:, None]
-        padding_mask = None if valid_mask is None else ~valid_mask
-        return self.action_output(
-            self.action_expert(tokens, src_key_padding_mask=padding_mask)
-        )
+        if valid_mask is None:
+            valid_mask = torch.ones(
+                noisy_actions.shape[:2], dtype=torch.bool, device=noisy_actions.device
+            )
+        suffix_tokens = self.embed_suffix(state, noisy_actions, time)
+        layout = make_pi0_attention_layout(prefix_mask, valid_mask)
+        _, suffix_output = self.transformer(prefix_tokens, suffix_tokens, layout)
+        velocity = self.action_output(suffix_output[:, 1 : horizon + 1])
+        velocity = velocity * valid_mask.unsqueeze(-1).to(velocity.dtype)
+        if return_layout:
+            return velocity, layout
+        return velocity
 
     def loss(self, batch: dict[str, Tensor]) -> Tensor:
-        condition = self.encode_condition(
-            batch["image"], batch["state"], batch["text_ids"], batch["text_mask"]
+        prefix_tokens, prefix_mask = self.encode_prefix(
+            batch["image"], batch["text_ids"], batch["text_mask"]
         )
         flow_batch = sample_flow_batch(batch["actions"].float())
         action_mask = batch.get(
@@ -117,9 +138,12 @@ class TinyPi0(nn.Module):
         predicted_velocity = self.predict_velocity(
             flow_batch.noisy_actions,
             flow_batch.time,
-            condition,
+            prefix_tokens,
+            prefix_mask,
+            batch["state"],
             action_mask,
         )
+        assert isinstance(predicted_velocity, Tensor)
         return masked_flow_matching_loss(
             predicted_velocity,
             flow_batch.target_velocity,
@@ -128,8 +152,8 @@ class TinyPi0(nn.Module):
 
     @torch.no_grad()
     def sample_actions(self, batch: dict[str, Tensor], num_steps: int = 10) -> Tensor:
-        condition = self.encode_condition(
-            batch["image"], batch["state"], batch["text_ids"], batch["text_mask"]
+        prefix_tokens, prefix_mask = self.encode_prefix(
+            batch["image"], batch["text_ids"], batch["text_mask"]
         )
         shape = (
             batch["state"].shape[0],
@@ -137,7 +161,13 @@ class TinyPi0(nn.Module):
             self.config.action_dim,
         )
         return euler_sample(
-            lambda actions, time: self.predict_velocity(actions, time, condition),
+            lambda actions, time: self.predict_velocity(
+                actions,
+                time,
+                prefix_tokens,
+                prefix_mask,
+                batch["state"],
+            ),
             shape,
             device=batch["state"].device,
             num_steps=num_steps,

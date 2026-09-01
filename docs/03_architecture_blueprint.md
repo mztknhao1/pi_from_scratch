@@ -185,8 +185,8 @@ checkpoint/             # 仅训练任务
 ## 7. 近期实现顺序
 
 1. 把已经独立验证的 episode split、窗口 mask、action transform 和 normalizer 接入同一份训练数据配置。
-2. 在已经锁定的 flow path、target velocity 和采样方向上实现 observation prefix、action suffix 与 attention mask。
-3. 把数据配置、condition encoder、flow objective 和 optimizer 组装成可诊断的小型训练任务。
+2. 已在锁定的 flow path、target velocity 和采样方向上实现 observation prefix、action suffix、双专家层与 attention mask。
+3. 把数据配置、prefix/suffix model、flow objective 和 optimizer 组装成可诊断的小型训练任务。
 4. 在已经明确的 prediction/execution horizon、replanning interval 和同步 chunk executor 上接入真实 policy 输出。
 5. 增加统一 `Policy` adapter 与同步 PushT runner。
 6. 加入 latency wrapper 和 async runtime，再单独实现 RTC。

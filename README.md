@@ -88,6 +88,15 @@ pi-flow-matching-demo
 pytest -q tests/test_flow_matching.py
 ```
 
+第六讲把图像与语言 prefix、state/action suffix 和双专家 attention 接到 flow objective：
+
+> [第 6 讲：让 VLM 看懂场景，让 Action Expert 生成动作](docs/lessons/06_vlm_backbone_and_action_expert.md)
+
+```bash
+pi-prefix-suffix-demo
+pytest -q tests/test_prefix_suffix.py tests/test_model.py
+```
+
 ## 代码目录
 
 代码按职责分层，课程命令只负责把这些模块串起来：
@@ -157,7 +166,7 @@ PushT 只有一个固定任务，适合验证连续控制机制，但不能证�
    flow matching action chunk
 ```
 
-当前仓库已经包含前五讲正文、统一的 observation/action 接口、episode-safe action window、可逆动作变换与 train-only normalization、同步 action-chunk executor、conditional flow-matching objective、random policy 演示、小型 flow policy、synthetic 训练和测试。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
+当前仓库已经包含前六讲正文、统一的 observation/action 接口、episode-safe action window、可逆动作变换与 train-only normalization、同步 action-chunk executor、conditional flow-matching objective、prefix/suffix attention、双专家教学模型、synthetic 训练和测试。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
 
 ## 项目边界
 

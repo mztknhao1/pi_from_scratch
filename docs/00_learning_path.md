@@ -99,6 +99,8 @@ flow ODE sampling
 
 交付：小模型结构图、attention mask 检查、与 openpi 张量接口的逐项映射。
 
+正文：[`lessons/06_vlm_backbone_and_action_expert.md`](lessons/06_vlm_backbone_and_action_expert.md)
+
 #### 第 7 讲：训练一个小型 π₀ 风格 policy
 
 唯一问题：把数据、条件编码、flow loss、优化器和 checkpoint 组装后，怎样判断模型确实学到了而不是管线“能跑”？

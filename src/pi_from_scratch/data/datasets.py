@@ -42,7 +42,7 @@ class SyntheticPiDataset(Dataset[dict[str, Tensor]]):
 
 
 class LeRobotPiDataset(Dataset[dict[str, Tensor]]):
-    """Thin adapter from LeRobot's schema to this project's five training tensors."""
+    """Thin adapter from LeRobot's schema to this project's training tensors."""
 
     def __init__(self, data: DataConfig, model: ModelConfig):
         try:

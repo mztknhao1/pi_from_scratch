@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="820" viewBox="0 0 1400 820" role="img" aria-labelledby="title desc">
+  <title id="title">π₀ 中 observation prefix 与 action suffix 的信息流</title>
+  <desc id="desc">图像和语言组成前缀，机器人状态、带噪动作和流时间组成后缀。前缀经过 VLM 权重，后缀经过 action expert 权重；动作 token 能读取所有条件和整段动作，最终输出 flow velocity。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#eef2ff"/>
+    </linearGradient>
+    <linearGradient id="prefix" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#dbeafe"/>
+      <stop offset="1" stop-color="#bfdbfe"/>
+    </linearGradient>
+    <linearGradient id="suffix" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffedd5"/>
+      <stop offset="1" stop-color="#fed7aa"/>
+    </linearGradient>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ea580c"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#334155" flood-opacity="0.13"/>
+    </filter>
+  </defs>
+
+  <rect width="1400" height="820" rx="28" fill="url(#bg)"/>
+  <text x="70" y="68" font-family="Arial, 'PingFang SC', sans-serif" font-size="34" font-weight="700" fill="#0f172a">π₀：让语义前缀条件化连续动作后缀</text>
+  <text x="70" y="104" font-family="Arial, 'PingFang SC', sans-serif" font-size="18" fill="#475569">同一个 Transformer 序列，两套专门参数，一张决定信息方向的 attention mask</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="145" width="190" height="92" rx="18" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
+    <rect x="285" y="145" width="230" height="92" rx="18" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
+    <rect x="625" y="145" width="190" height="92" rx="18" fill="#ffffff" stroke="#fdba74" stroke-width="2"/>
+    <rect x="840" y="145" width="300" height="92" rx="18" fill="#ffffff" stroke="#fdba74" stroke-width="2"/>
+  </g>
+  <text x="165" y="181" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="18" font-weight="700" fill="#1e3a8a">相机图像</text>
+  <text x="165" y="211" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="16" fill="#475569">image patches</text>
+  <text x="400" y="181" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="18" font-weight="700" fill="#1e3a8a">任务指令</text>
+  <text x="400" y="211" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="16" fill="#475569">language tokens</text>
+  <text x="720" y="181" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="18" font-weight="700" fill="#9a3412">机器人状态 q</text>
+  <text x="720" y="211" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="16" fill="#475569">state token</text>
+  <text x="990" y="181" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="18" font-weight="700" fill="#9a3412">带噪 action chunk Aₜ + t</text>
+  <text x="990" y="211" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="16" fill="#475569">H action tokens</text>
+
+  <path d="M165 237 L165 278" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow-blue)"/>
+  <path d="M400 237 L400 278" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow-blue)"/>
+  <path d="M720 237 L720 278" stroke="#ea580c" stroke-width="3" marker-end="url(#arrow-orange)"/>
+  <path d="M990 237 L990 278" stroke="#ea580c" stroke-width="3" marker-end="url(#arrow-orange)"/>
+
+  <rect x="70" y="284" width="485" height="82" rx="16" fill="url(#prefix)" stroke="#60a5fa" stroke-width="2"/>
+  <rect x="585" y="284" width="555" height="82" rx="16" fill="url(#suffix)" stroke="#fb923c" stroke-width="2"/>
+  <text x="312" y="317" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="20" font-weight="700" fill="#1e3a8a">Observation prefix</text>
+  <text x="312" y="346" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="16" fill="#334155">[ image₁ … imageₙ | language₁ … languageₗ ]</text>
+  <text x="862" y="317" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="20" font-weight="700" fill="#9a3412">Action suffix</text>
+  <text x="862" y="346" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="16" fill="#334155">[ state | action₀ … actionₕ₋₁ ]</text>
+
+  <path d="M312 366 L312 425" stroke="#2563eb" stroke-width="4" marker-end="url(#arrow-blue)"/>
+  <path d="M862 366 L862 425" stroke="#ea580c" stroke-width="4" marker-end="url(#arrow-orange)"/>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="435" width="485" height="190" rx="22" fill="#eff6ff" stroke="#3b82f6" stroke-width="3"/>
+    <rect x="585" y="435" width="555" height="190" rx="22" fill="#fff7ed" stroke="#f97316" stroke-width="3"/>
+  </g>
+  <text x="312" y="485" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="25" font-weight="700" fill="#1d4ed8">VLM backbone</text>
+  <text x="312" y="519" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="17" fill="#334155">图像与语言 token 使用预训练权重</text>
+  <text x="312" y="552" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="17" fill="#334155">保留物体、场景和指令语义</text>
+  <text x="312" y="588" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="15" fill="#64748b">π₀：PaliGemma 约 3B 参数</text>
+
+  <text x="862" y="485" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="25" font-weight="700" fill="#c2410c">Action expert</text>
+  <text x="862" y="519" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="17" fill="#334155">state 与 action token 使用独立权重</text>
+  <text x="862" y="552" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="17" fill="#334155">整段 action token 双向交互</text>
+  <text x="862" y="588" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="15" fill="#64748b">π₀：约 300M 参数，从头初始化</text>
+
+  <path d="M540 520 C575 490 575 490 610 520" fill="none" stroke="#7c3aed" stroke-width="3" marker-end="url(#arrow-orange)"/>
+  <text x="575" y="558" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="13" font-weight="700" fill="#6d28d9">读取 prefix K/V</text>
+
+  <rect x="1180" y="284" width="170" height="341" rx="20" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="1265" y="321" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="17" font-weight="700" fill="#0f172a">谁能看见谁？</text>
+  <text x="1265" y="348" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="13" fill="#64748b">行是 query，列是 key</text>
+  <text x="1230" y="390" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#334155">P</text>
+  <text x="1270" y="390" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#334155">S</text>
+  <text x="1310" y="390" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#334155">A</text>
+  <text x="1200" y="425" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#334155">P</text>
+  <text x="1200" y="465" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#334155">S</text>
+  <text x="1200" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#334155">A</text>
+  <rect x="1210" y="405" width="38" height="38" rx="6" fill="#60a5fa"/>
+  <rect x="1250" y="405" width="38" height="38" rx="6" fill="#e2e8f0"/>
+  <rect x="1290" y="405" width="38" height="38" rx="6" fill="#e2e8f0"/>
+  <rect x="1210" y="445" width="38" height="38" rx="6" fill="#60a5fa"/>
+  <rect x="1250" y="445" width="38" height="38" rx="6" fill="#fb923c"/>
+  <rect x="1290" y="445" width="38" height="38" rx="6" fill="#e2e8f0"/>
+  <rect x="1210" y="485" width="38" height="38" rx="6" fill="#60a5fa"/>
+  <rect x="1250" y="485" width="38" height="38" rx="6" fill="#fb923c"/>
+  <rect x="1290" y="485" width="38" height="38" rx="6" fill="#a78bfa"/>
+  <text x="1265" y="557" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="14" fill="#334155">P：图像与语言</text>
+  <text x="1265" y="582" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="14" fill="#334155">S：state</text>
+  <text x="1265" y="607" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="14" fill="#334155">A：整段 action</text>
+
+  <path d="M862 625 L862 690" stroke="#ea580c" stroke-width="4" marker-end="url(#arrow-orange)"/>
+  <rect x="650" y="700" width="425" height="72" rx="18" fill="#ffffff" stroke="#f97316" stroke-width="3" filter="url(#shadow)"/>
+  <text x="862" y="733" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="20" font-weight="700" fill="#9a3412">每个 action token 输出一个 flow velocity</text>
+  <text x="862" y="758" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" fill="#475569">vθ(Aₜ, t, observation) ∈ ℝᴴˣᴰ</text>
+</svg>
