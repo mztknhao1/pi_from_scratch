@@ -26,8 +26,8 @@ LeRobot trajectory
   -> π₀ conditional flow matching
   -> FAST autoregressive action tokens
   -> π₀.₅ heterogeneous co-training
-  -> π*₀.₆ experience + advantage conditioning
   -> MEM short-term video + long-term text memory
+  -> π*₀.₆ experience + advantage conditioning
   -> π₀.₇ diverse context conditioning
 ```
 
@@ -45,9 +45,23 @@ flow ODE sampling
 
 两条线共享 observation/action contract，但模型不负责控制时钟和 action buffer。RTC 属于 policy runtime，不应被实现为 π₀.₅ 或 π₀.₇ 内部的特殊分支。
 
+### 论文改进快线
+
+希望尽快进入 π 系列后续工作的读者，完成第 1–8 讲后按下面的顺序阅读：
+
+```text
+第 9 讲：用最小闭环冻结 runtime 接口
+  -> 第 10 讲：RTC
+  -> 第 11 讲：FAST
+  -> 第 12 讲：π₀.₅
+  -> 第 13 讲：MEM
+```
+
+第 9 讲只补齐这些工作共同依赖的 observation、timestamp、buffer 和 environment 边界。π*₀.₆、π₀.₇ 与最终组装随后继续，主线中不再插入通用大模型基础课。
+
 ## 课程大纲
 
-采用“每讲解决一个主要问题”的组织方式。讲数不是目标，边界清楚和可验证才是目标。
+采用“每讲解决一个主要问题”的组织方式。讲数服从内容边界，每个问题都要清楚且可验证。
 
 ### 第一部分：定义问题与数据契约
 
@@ -103,7 +117,7 @@ flow ODE sampling
 
 #### 第 7 讲：训练一个小型 π₀ 风格 policy
 
-唯一问题：把数据、条件编码、flow loss、优化器和 checkpoint 组装后，怎样判断模型确实学到了而不是管线“能跑”？
+唯一问题：把数据、条件编码、flow loss、优化器和 checkpoint 组装后，怎样判断模型确实学到了，同时排除管线只达到“能跑”的情况？
 
 交付：固定配置训练、过拟合基准、validation loss、预测轨迹可视化和失败诊断。
 
@@ -123,7 +137,9 @@ flow ODE sampling
 
 唯一问题：policy inference、环境 step、控制频率、action buffer 和重规划应如何解耦？
 
-交付：PushT 闭环 runner；同步、阻塞式 action-chunk baseline；success/reward/video 记录。
+交付：同步、阻塞式 action-chunk runner；dependency-free 二维闭环验收；复用同一接口的 PushT adapter；success/reward/timing/trajectory 记录。
+
+正文：[`lessons/09_closing_the_policy_environment_loop.md`](lessons/09_closing_the_policy_environment_loop.md)
 
 #### 第 10 讲：RTC 如何在推理延迟下保持动作连续
 
@@ -143,19 +159,19 @@ flow ODE sampling
 
 唯一问题：异构样本如何共享模型并采用离散预训练、flow 后训练的 hybrid recipe？
 
-交付：typed mixture sample、objective routing、sampling ratio 记录；小规模 semantic subtask/context 实验；knowledge insulation 作为可测的遗忘约束，而不是口号。
+交付：typed mixture sample、objective routing、sampling ratio 记录；小规模 semantic subtask/context 实验；用可测的遗忘约束落实 knowledge insulation。
 
-#### 第 13 讲：π*₀.₆ / RECAP 如何从部署经验和纠正中学习
-
-唯一问题：如何让 demonstration、autonomous rollout、failure 和 intervention 通过 value/advantage 信号共同改进 policy？
-
-交付：带 reward/source/intervention 的 episode schema；offline value/advantage pipeline；advantage-conditioned policy 对照实验。真实机器人在线 RL 不属于首版范围。
-
-#### 第 14 讲：MEM 如何让 VLA 同时拥有短期与长期记忆
+#### 第 13 讲：MEM 如何让 VLA 同时拥有短期与长期记忆
 
 唯一问题：长时程任务中，怎样既保留最近视觉细节以应对遮挡，又用紧凑语义记忆追踪分钟级任务进度？
 
 交付：短期视频窗口与压缩编码、长期文本 memory state、memory update/read 接口；在受控 partial-observability 与多阶段任务中比较无记忆、单尺度记忆和多尺度记忆。
+
+#### 第 14 讲：π*₀.₆ / RECAP 如何从部署经验和纠正中学习
+
+唯一问题：如何让 demonstration、autonomous rollout、failure 和 intervention 通过 value/advantage 信号共同改进 policy？
+
+交付：带 reward/source/intervention 的 episode schema；offline value/advantage pipeline；advantage-conditioned policy 对照实验。真实机器人在线 RL 不属于首版范围。
 
 #### 第 15 讲：π₀.₇ 如何用多模态 context 控制策略
 
@@ -173,18 +189,18 @@ flow ODE sampling
 
 ## 工程里程碑
 
-“讲”服务于理解，“M”表示代码仓的可运行状态，两者不是同义词。
+“讲”服务于理解，“M”表示代码仓的可运行状态，两套编号承担不同职责。
 
 | 里程碑 | 覆盖讲次 | 仓库必须达到的状态 |
 |---|---:|---|
 | M0 | 1 | synthetic 数据能完成 loss、backward、checkpoint；接口初版冻结 |
 | M1 | 2–4 | PushT batch、统计量、action transform 和 chunk mask 可检查 |
-| M2 | 5–9 | 小型 π₀ 风格 policy 能训练、采样并在 PushT 闭环运行 |
+| M2 | 5–9 | 小型 π₀ 风格 policy 能训练、采样；同步闭环与 PushT adapter 可检查 |
 | M3 | 10 | 延迟注入、异步 runtime、RTC 与实时性指标可复现实验 |
 | M4 | 11 | FAST-like tokenizer 和 autoregressive baseline 能公平对比 |
 | M5 | 12 | π₀.₅ 风格 mixed objective 与语义/遗忘检查 |
-| M6 | 13 | π*₀.₆ 风格 offline experience/advantage 实验 |
-| M7 | 14 | MEM 短期视频/长期文本记忆与 partial-observability 实验 |
+| M6 | 13 | MEM 短期视频/长期文本记忆与 partial-observability 实验 |
+| M7 | 14 | π*₀.₆ 风格 offline experience/advantage 实验 |
 | M8 | 15–16 | π₀.₇ context 实验和统一仿真 demo |
 
 原先的 M0–M6 增加为 M0–M8：RTC 有独立的 runtime 与实时性验收，MEM 也有独立的 memory state、更新机制与长时程验证；二者都不应作为其他模型版本下的一条附注。

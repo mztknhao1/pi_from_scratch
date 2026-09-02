@@ -6,7 +6,7 @@
 
 我们将从一个可以在普通开发机上运行的小型模型出发，逐步理解并实现 π₀、FAST、RTC、π₀.₅、π*₀.₆、MEM 和 π₀.₇ 中的重要思想，最终把数据、训练、推理与仿真环境连接成一个完整的小型 VLA 系统。
 
-本项目参考 [openpi](https://github.com/Physical-Intelligence/openpi)，但重点是用较小、易读、可实验的代码解释核心机制，而不是复现原论文的模型规模和性能。
+本项目参考 [openpi](https://github.com/Physical-Intelligence/openpi)，重点是用较小、易读、可实验的代码解释核心机制；原论文的模型规模和性能不属于项目目标。
 
 ## 你会学到什么
 
@@ -22,7 +22,7 @@
 
 ## 从第一讲开始
 
-第一讲先建立完整系统观，而不是直接进入公式：
+第一讲先建立完整系统观，再进入公式：
 
 > [第 1 讲：认识 VLA 系统——机器人如何从“看见、听懂”走到“行动”](docs/lessons/01_vla_system_overview.md)
 
@@ -115,6 +115,17 @@ pi-sampling-demo
 pytest -q tests/test_flow_sampling.py tests/test_flow_matching.py
 ```
 
+第九讲把 observation、policy、action chunk 和 environment 接成同步闭环：
+
+> [第 9 讲：让 Policy 真正闭环——观察、规划、执行与再次观察](docs/lessons/09_closing_the_policy_environment_loop.md)
+
+```bash
+pi-closed-loop-demo --env point --policy goal --execution-horizon 3
+pytest -q tests/test_closed_loop.py
+```
+
+命令会生成带 timing provenance 的 `summary.json` 和二维轨迹图。官方 PushT adapter 也已接入；建议在 Python 3.11/3.12 环境安装 `.[sim]` 后运行。
+
 ## 代码目录
 
 代码按职责分层，课程命令只负责把这些模块串起来：
@@ -128,6 +139,7 @@ src/pi_from_scratch/
 ├── training/         # split、normalization、训练循环、固定评估与 checkpoint
 ├── evaluation/       # loss curve 与离线 action trajectory 可视化
 ├── inference/        # Euler/Heun、flow sampling；不管理环境时钟
+├── envs/             # dependency-free 闭环环境与可选 PushT adapter
 ├── policies/         # 面向 runtime 的统一 policy 接口
 ├── runtime/          # 同步 chunk 执行；后续加入 buffer、异步调度与 RTC
 ├── cli/              # 各讲实验、训练和可视化命令入口
@@ -135,7 +147,7 @@ src/pi_from_scratch/
 └── contracts.py      # 跨模块共享的 observation/action 契约
 ```
 
-后续 environment、异步 runtime 和 memory 会在对应课程真正需要时加入，不预先创建空目录。
+异步 runtime、memory 和更多 environment adapter 会在对应课程真正需要时加入。
 
 ## 运行最小训练
 

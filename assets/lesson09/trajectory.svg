@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="620" viewBox="0 0 720 620">
+<rect width="100%" height="100%" fill="#101521" />
+<text x="70" y="38" fill="#f8fafc" font-family="sans-serif" font-size="23">Closed-loop trajectory</text>
+<text x="70" y="60" fill="#94a3b8" font-family="sans-serif" font-size="14">blue: executed state · yellow: policy command · purple: replan boundary</text>
+<rect x="70" y="70" width="580" height="480" fill="#172033" stroke="#526078" />
+<line x1="360.0" y1="70" x2="360.0" y2="550" stroke="#334155" />
+<line x1="70" y1="310.0" x2="650" y2="310.0" stroke="#334155" />
+<circle cx="571.59" cy="484.83" r="14" fill="#ef4444" opacity="0.9" />
+<circle cx="211.32" cy="500.62" r="3" fill="#f2b84b" opacity="0.75" />
+<circle cx="246.07" cy="499.10" r="3" fill="#f2b84b" opacity="0.75" />
+<circle cx="280.82" cy="497.57" r="3" fill="#f2b84b" opacity="0.75" />
+<circle cx="315.57" cy="496.05" r="3" fill="#f2b84b" opacity="0.75" />
+<circle cx="350.32" cy="494.53" r="3" fill="#f2b84b" opacity="0.75" />
+<circle cx="385.07" cy="493.00" r="3" fill="#f2b84b" opacity="0.75" />
+<circle cx="419.82" cy="491.48" r="3" fill="#f2b84b" opacity="0.75" />
+<circle cx="454.57" cy="489.96" r="3" fill="#f2b84b" opacity="0.75" />
+<circle cx="489.33" cy="488.43" r="3" fill="#f2b84b" opacity="0.75" />
+<circle cx="524.08" cy="486.91" r="3" fill="#f2b84b" opacity="0.75" />
+<circle cx="558.83" cy="485.39" r="3" fill="#f2b84b" opacity="0.75" />
+<circle cx="571.59" cy="484.83" r="3" fill="#f2b84b" opacity="0.75" />
+<polyline points="176.56,502.14 211.32,500.62 246.07,499.10 280.82,497.57 315.57,496.05 350.32,494.53 385.07,493.00 419.82,491.48 454.57,489.96 489.33,488.43 524.08,486.91 558.83,485.39 571.59,484.83" fill="none" stroke="#4ca5ff" stroke-width="5" stroke-linejoin="round" />
+<circle cx="280.82" cy="497.57" r="7" fill="none" stroke="#a855f7" stroke-width="3" />
+<circle cx="385.07" cy="493.00" r="7" fill="none" stroke="#a855f7" stroke-width="3" />
+<circle cx="489.33" cy="488.43" r="7" fill="none" stroke="#a855f7" stroke-width="3" />
+<circle cx="176.56" cy="502.14" r="8" fill="#22c55e" />
+<circle cx="571.59" cy="484.83" r="8" fill="#f8fafc" />
+</svg>

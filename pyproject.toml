@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 lerobot = ["lerobot[dataset]>=0.6,<0.7"]
+sim = ["gym-pusht==0.1.6"]
 dev = ["pytest>=8.0", "ruff>=0.8"]
 
 [project.scripts]
@@ -28,6 +29,7 @@ pi-flow-matching-demo = "pi_from_scratch.cli.lesson05:main"
 pi-prefix-suffix-demo = "pi_from_scratch.cli.lesson06:main"
 pi-training-demo = "pi_from_scratch.cli.lesson07:main"
 pi-sampling-demo = "pi_from_scratch.cli.lesson08:main"
+pi-closed-loop-demo = "pi_from_scratch.cli.lesson09:main"
 pi-visualize-chunk = "pi_from_scratch.cli.visualize_chunk:main"
 pi-train = "pi_from_scratch.cli.train:main"
 
