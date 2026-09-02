@@ -17,6 +17,17 @@ class FlowMatchingBatch:
     noise: Tensor
 
 
+@dataclass(frozen=True)
+class TrainingRTCFlowBatch:
+    """Flow point with a clean committed prefix and a noisy supervised postfix."""
+
+    noisy_actions: Tensor
+    token_time: Tensor
+    target_velocity: Tensor
+    loss_mask: Tensor
+    noise: Tensor
+
+
 def linear_flow_path(actions: Tensor, noise: Tensor, time: Tensor) -> FlowMatchingBatch:
     """Interpolate data at ``t=0`` to noise at ``t=1`` using openpi's convention."""
     if actions.ndim != 3 or not actions.is_floating_point():
@@ -59,6 +70,48 @@ def sample_flow_batch(
         )
         time = beta.sample((actions.shape[0],)).to(actions.dtype) * 0.999 + 0.001
     return linear_flow_path(actions, noise, time)
+
+
+def training_rtc_flow_batch(
+    actions: Tensor,
+    prefix_lengths: Tensor,
+    *,
+    noise: Tensor,
+    time: Tensor,
+) -> TrainingRTCFlowBatch:
+    """Construct training-time RTC inputs in the openpi t=1 noise -> t=0 data convention."""
+    if actions.ndim != 3 or not actions.is_floating_point():
+        raise ValueError("actions must be floating point with shape [batch, horizon, action_dim]")
+    if noise.shape != actions.shape or noise.dtype != actions.dtype or noise.device != actions.device:
+        raise ValueError("noise must match actions in shape, dtype, and device")
+    if prefix_lengths.shape != (actions.shape[0],) or prefix_lengths.dtype != torch.long:
+        raise ValueError("prefix_lengths must be int64 with shape [batch]")
+    if prefix_lengths.device != actions.device:
+        raise ValueError("prefix_lengths and actions must be on the same device")
+    if torch.any(prefix_lengths < 0).item() or torch.any(prefix_lengths >= actions.shape[1]).item():
+        raise ValueError("each prefix length must satisfy 0 <= d < horizon")
+    if time.shape != (actions.shape[0],) or not time.is_floating_point():
+        raise ValueError("time must be floating point with shape [batch]")
+    if time.device != actions.device:
+        raise ValueError("time and actions must be on the same device")
+    if torch.any((time < 0.0) | (time > 1.0)).item():
+        raise ValueError("time must lie in [0, 1]")
+
+    positions = torch.arange(actions.shape[1], device=actions.device)[None]
+    prefix_mask = positions < prefix_lengths[:, None]
+    token_time = time[:, None].expand(-1, actions.shape[1]).clone()
+    token_time[prefix_mask] = 0.0
+    noisy_actions = (
+        (1.0 - token_time[:, :, None]) * actions
+        + token_time[:, :, None] * noise
+    )
+    return TrainingRTCFlowBatch(
+        noisy_actions=noisy_actions,
+        token_time=token_time,
+        target_velocity=noise - actions,
+        loss_mask=~prefix_mask,
+        noise=noise,
+    )
 
 
 def masked_flow_matching_loss(

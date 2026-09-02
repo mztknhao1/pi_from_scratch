@@ -1,0 +1,46 @@
+{
+  "config": {
+    "horizon": 16,
+    "execution_horizon": 6,
+    "delay_steps": 3,
+    "num_replans": 5,
+    "fps": 10.0,
+    "num_denoising_steps": 20,
+    "seed": 7
+  },
+  "results": [
+    {
+      "method": "blocking",
+      "num_actions": 36,
+      "num_boundaries": 5,
+      "wall_time_s": 5.099999999999999,
+      "throughput_hz": 7.058823529411766,
+      "mean_boundary_jump": 0.13560166954994202,
+      "mean_boundary_jerk": 180.655517578125,
+      "mean_boundary_observation_age_s": 0.30000001192092896,
+      "deadline_misses": 0
+    },
+    {
+      "method": "naive_async",
+      "num_actions": 36,
+      "num_boundaries": 5,
+      "wall_time_s": 3.6,
+      "throughput_hz": 10.0,
+      "mean_boundary_jump": 0.5568426251411438,
+      "mean_boundary_jerk": 551.4509887695312,
+      "mean_boundary_observation_age_s": 0.30000001192092896,
+      "deadline_misses": 0
+    },
+    {
+      "method": "rtc",
+      "num_actions": 36,
+      "num_boundaries": 5,
+      "wall_time_s": 3.6,
+      "throughput_hz": 10.0,
+      "mean_boundary_jump": 0.050791509449481964,
+      "mean_boundary_jerk": 70.16742706298828,
+      "mean_boundary_observation_age_s": 0.30000001192092896,
+      "deadline_misses": 0
+    }
+  ]
+}

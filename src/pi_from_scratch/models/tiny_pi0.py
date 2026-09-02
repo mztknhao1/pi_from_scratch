@@ -10,7 +10,11 @@ from pi_from_scratch.models.prefix_suffix import (
     TwoExpertTransformer,
     make_pi0_attention_layout,
 )
-from pi_from_scratch.objectives import masked_flow_matching_loss, sample_flow_batch
+from pi_from_scratch.objectives import (
+    masked_flow_matching_loss,
+    sample_flow_batch,
+    training_rtc_flow_batch,
+)
 
 
 def masked_action_mse(predicted: Tensor, target: Tensor, valid_mask: Tensor) -> Tensor:
@@ -23,7 +27,7 @@ def sinusoidal_time_embedding(time: Tensor, width: int) -> Tensor:
         raise ValueError("width must be even")
     fraction = torch.linspace(0.0, 1.0, width // 2, device=time.device)
     period = 4e-3 * (4.0 / 4e-3) ** fraction
-    angles = time[:, None] * (2.0 * math.pi / period[None, :])
+    angles = time[..., None] * (2.0 * math.pi / period)
     return torch.cat((angles.sin(), angles.cos()), dim=-1)
 
 
@@ -89,7 +93,15 @@ class TinyPi0(nn.Module):
             raise ValueError("action chunk is longer than configured action_horizon")
         state_token = self.state_input(state.float())[:, None]
         action_tokens = self.action_input(noisy_actions) + self.position[:horizon]
-        time_tokens = self.time_mlp(sinusoidal_time_embedding(time, self.config.width))[:, None]
+        if time.ndim == 1:
+            action_time = time[:, None].expand(-1, horizon)
+        elif time.shape == noisy_actions.shape[:2]:
+            action_time = time
+        else:
+            raise ValueError("time must have shape [batch] or [batch, horizon]")
+        time_tokens = self.time_mlp(
+            sinusoidal_time_embedding(action_time, self.config.width)
+        )
         action_tokens = action_tokens + time_tokens
         return torch.cat((state_token, action_tokens), dim=1)
 
@@ -154,6 +166,44 @@ class TinyPi0(nn.Module):
             predicted_velocity,
             flow_batch.target_velocity,
             action_mask,
+        )
+
+    def training_rtc_loss(
+        self,
+        batch: dict[str, Tensor],
+        *,
+        prefix_lengths: Tensor,
+        noise: Tensor,
+        time: Tensor,
+    ) -> Tensor:
+        """Flow loss for the training-time RTC extension with per-token flow times."""
+        prefix_tokens, prefix_mask = self.encode_prefix(
+            batch["image"], batch["text_ids"], batch["text_mask"]
+        )
+        rtc_batch = training_rtc_flow_batch(
+            batch["actions"].float(),
+            prefix_lengths,
+            noise=noise,
+            time=time,
+        )
+        action_mask = batch.get(
+            "action_mask",
+            torch.ones_like(rtc_batch.loss_mask),
+        )
+        loss_mask = action_mask & rtc_batch.loss_mask
+        predicted_velocity = self.predict_velocity(
+            rtc_batch.noisy_actions,
+            rtc_batch.token_time,
+            prefix_tokens,
+            prefix_mask,
+            batch["state"],
+            action_mask,
+        )
+        assert isinstance(predicted_velocity, Tensor)
+        return masked_flow_matching_loss(
+            predicted_velocity,
+            rtc_batch.target_velocity,
+            loss_mask,
         )
 
     @torch.no_grad()

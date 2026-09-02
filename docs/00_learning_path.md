@@ -145,7 +145,9 @@ flow ODE sampling
 
 唯一问题：异步生成新 chunk 时，如何冻结已经确定会执行的 action prefix，并用 flow inpainting 补全未来动作？
 
-交付：可注入固定/抖动延迟的 runtime；naive blocking、latest chunk、RTC 三种策略；吞吐、成功率、边界 jerk 和 deadline miss 对比；再加入 training-time RTC 作为独立扩展。
+交付：先实现可注入固定延迟的离散事件 runtime，对比 blocking、naive async、RTC 三种策略的吞吐、观测年龄、边界跳变和 jerk；再加入 training-time RTC 作为独立扩展。延迟抖动、deadline miss 分位数和任务成功率留到部署实验继续补全。
+
+正文：[`lessons/10_real_time_chunking.md`](lessons/10_real_time_chunking.md)
 
 ### 第四部分：π 系列的表示与训练改进
 

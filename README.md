@@ -126,6 +126,15 @@ pytest -q tests/test_closed_loop.py
 
 命令会生成带 timing provenance 的 `summary.json` 和二维轨迹图。官方 PushT adapter 也已接入；建议在 Python 3.11/3.12 环境安装 `.[sim]` 后运行。
 
+第十讲加入延迟时间线、普通异步与 RTC prefix guidance：
+
+> [第 10 讲：RTC——模型思考时，机器人怎样继续平稳运动？](docs/lessons/10_real_time_chunking.md)
+
+```bash
+pi-rtc-demo --horizon 16 --execution-horizon 6 --delay-steps 3
+pytest -q tests/test_rtc.py
+```
+
 ## 代码目录
 
 代码按职责分层，课程命令只负责把这些模块串起来：
