@@ -115,6 +115,8 @@ flow ODE sampling
 
 交付：Euler sampler；固定 noise 的可复现实验；sampling steps/latency/误差曲线。
 
+正文：[`lessons/08_flow_sampling_as_ode_integration.md`](lessons/08_flow_sampling_as_ode_integration.md)
+
 ### 第三部分：闭环控制与实时推理
 
 #### 第 9 讲：从离线预测走到 simulator 闭环

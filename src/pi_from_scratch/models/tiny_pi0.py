@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 
 from pi_from_scratch.config import ModelConfig
-from pi_from_scratch.inference import euler_sample
+from pi_from_scratch.inference import FlowSolver, flow_sample
 from pi_from_scratch.models.prefix_suffix import (
     Pi0AttentionLayout,
     TwoExpertTransformer,
@@ -163,6 +163,7 @@ class TinyPi0(nn.Module):
         num_steps: int = 10,
         *,
         noise: Tensor | None = None,
+        solver: FlowSolver = "euler",
     ) -> Tensor:
         prefix_tokens, prefix_mask = self.encode_prefix(
             batch["image"], batch["text_ids"], batch["text_mask"]
@@ -172,7 +173,7 @@ class TinyPi0(nn.Module):
             self.config.action_horizon,
             self.config.action_dim,
         )
-        return euler_sample(
+        return flow_sample(
             lambda actions, time: self.predict_velocity(
                 actions,
                 time,
@@ -184,4 +185,5 @@ class TinyPi0(nn.Module):
             device=batch["state"].device,
             num_steps=num_steps,
             noise=noise,
+            solver=solver,
         )

@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from pi_from_scratch.config import DataConfig, ModelConfig, TrainConfig
 from pi_from_scratch.data import SyntheticPiDataset, create_dataset_splits
 from pi_from_scratch.models import TinyPi0
-from pi_from_scratch.training import evaluate_flow_loss, train_experiment
+from pi_from_scratch.training import evaluate_flow_loss, load_tiny_checkpoint, train_experiment
 
 
 def tiny_training_config(output_dir: str, *, steps: int = 60) -> TrainConfig:
@@ -83,3 +83,8 @@ def test_fixed_bank_overfit_saves_reproducible_artifacts(tmp_path) -> None:
     assert checkpoint["normalization"]["train_episode_ids"] == tuple(split["train"])
     assert checkpoint["metrics"][0]["step"] == 0
     assert checkpoint["metrics"][-1]["step"] == config.steps
+
+    loaded = load_tiny_checkpoint(result.checkpoint_path, device=torch.device("cpu"))
+    assert loaded.step == config.steps
+    assert loaded.normalizer.stats.artifact_id == normalization["artifact_id"]
+    assert loaded.splits.episode_ids.train == tuple(split["train"])

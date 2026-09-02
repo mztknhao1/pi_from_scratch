@@ -106,6 +106,15 @@ pi-training-demo
 pytest -q tests/test_training.py tests/test_model.py
 ```
 
+第八讲固定 checkpoint、observation 和 initial noise，比较 Euler/Heun 的 steps、NFE、误差与延迟：
+
+> [第 8 讲：从一团噪声到 Action Chunk——把 Flow 推理看成数值积分](docs/lessons/08_flow_sampling_as_ode_integration.md)
+
+```bash
+pi-sampling-demo
+pytest -q tests/test_flow_sampling.py tests/test_flow_matching.py
+```
+
 ## 代码目录
 
 代码按职责分层，课程命令只负责把这些模块串起来：
@@ -118,7 +127,7 @@ src/pi_from_scratch/
 ├── objectives/       # flow matching 等训练目标
 ├── training/         # split、normalization、训练循环、固定评估与 checkpoint
 ├── evaluation/       # loss curve 与离线 action trajectory 可视化
-├── inference/        # Euler solver 等动作采样算法，不管理环境时钟
+├── inference/        # Euler/Heun、flow sampling；不管理环境时钟
 ├── policies/         # 面向 runtime 的统一 policy 接口
 ├── runtime/          # 同步 chunk 执行；后续加入 buffer、异步调度与 RTC
 ├── cli/              # 各讲实验、训练和可视化命令入口
@@ -135,7 +144,7 @@ src/pi_from_scratch/
 - 图像、文本和低维 state 条件编码；
 - action chunk；
 - conditional flow-matching loss；
-- Euler action sampling；
+- Euler/Heun action sampling 与固定 noise sweep；
 - synthetic dataset 和自动测试。
 
 无需下载机器人数据即可运行：
@@ -177,7 +186,7 @@ PushT 只有一个固定任务，适合验证连续控制机制，但不能证�
    flow matching action chunk
 ```
 
-当前仓库已经包含前七讲正文、统一的 observation/action 接口、episode-safe action window、可逆动作变换与 train-only normalization、同步 action-chunk executor、conditional flow-matching objective、prefix/suffix attention、双专家教学模型、可诊断训练、固定 train/validation flow bank、checkpoint 和离线轨迹图。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
+当前仓库已经包含前八讲正文、统一的 observation/action 接口、episode-safe action window、可逆动作变换与 train-only normalization、同步 action-chunk executor、conditional flow-matching objective、prefix/suffix attention、双专家教学模型、可诊断训练、checkpoint、Euler/Heun sampling，以及固定 noise 下的 NFE/误差/延迟 sweep。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
 
 ## 项目边界
 

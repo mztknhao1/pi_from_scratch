@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="440" viewBox="0 0 980 440">
+  <rect width="100%" height="100%" fill="#fbfbfd" />
+  <text x="28" y="34" font-family="sans-serif" font-size="22" fill="#202124">Quadratic path: solver error and latency</text>
+  <line x1="28" y1="60" x2="54" y2="60" stroke="#2563eb" stroke-width="4" />
+  <text x="62" y="66" font-family="sans-serif" font-size="15" fill="#374151">Euler (1 NFE/step)</text>
+  <line x1="220" y1="60" x2="246" y2="60" stroke="#f97316" stroke-width="4" />
+  <text x="254" y="66" font-family="sans-serif" font-size="15" fill="#374151">Heun (2 NFE/step)</text>
+  <text x="76.0" y="90" font-family="sans-serif" font-size="17" fill="#202124">action MAE (log)</text>
+  <text x="566.0" y="90" font-family="sans-serif" font-size="17" fill="#202124">median latency ms (log)</text>
+  <line x1="76.0" y1="100.0" x2="76.0" y2="370.0" stroke="#9ca3af" />
+  <line x1="76.0" y1="370.0" x2="466.0" y2="370.0" stroke="#9ca3af" />
+  <line x1="566.0" y1="100.0" x2="566.0" y2="370.0" stroke="#9ca3af" />
+  <line x1="566.0" y1="370.0" x2="956.0" y2="370.0" stroke="#9ca3af" />
+  <text x="12" y="105" font-family="monospace" font-size="12" fill="#4b5563">0.91</text><text x="12" y="375" font-family="monospace" font-size="12" fill="#4b5563">1e-12</text>
+  <text x="502" y="105" font-family="monospace" font-size="12" fill="#4b5563">0.29</text><text x="502" y="375" font-family="monospace" font-size="12" fill="#4b5563">0.0074</text>
+  <polyline points="76.00,100.00 154.00,106.80 232.00,113.59 310.00,120.39 388.00,127.19 466.00,133.98" fill="none" stroke="#2563eb" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="76.00" cy="100.00" r="4" fill="#2563eb" />
+<circle cx="154.00" cy="106.80" r="4" fill="#2563eb" />
+<circle cx="232.00" cy="113.59" r="4" fill="#2563eb" />
+<circle cx="310.00" cy="120.39" r="4" fill="#2563eb" />
+<circle cx="388.00" cy="127.19" r="4" fill="#2563eb" />
+<circle cx="466.00" cy="133.98" r="4" fill="#2563eb" />
+<polyline points="76.00,370.00 154.00,275.78 232.00,267.96 310.00,266.52 388.00,268.85 466.00,265.61" fill="none" stroke="#f97316" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="76.00" cy="370.00" r="4" fill="#f97316" />
+<circle cx="154.00" cy="275.78" r="4" fill="#f97316" />
+<circle cx="232.00" cy="267.96" r="4" fill="#f97316" />
+<circle cx="310.00" cy="266.52" r="4" fill="#f97316" />
+<circle cx="388.00" cy="268.85" r="4" fill="#f97316" />
+<circle cx="466.00" cy="265.61" r="4" fill="#f97316" />
+  <polyline points="566.00,370.00 644.00,338.46 722.00,297.97 800.00,252.97 878.00,205.36 956.00,155.52" fill="none" stroke="#2563eb" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="566.00" cy="370.00" r="4" fill="#2563eb" />
+<circle cx="644.00" cy="338.46" r="4" fill="#2563eb" />
+<circle cx="722.00" cy="297.97" r="4" fill="#2563eb" />
+<circle cx="800.00" cy="252.97" r="4" fill="#2563eb" />
+<circle cx="878.00" cy="205.36" r="4" fill="#2563eb" />
+<circle cx="956.00" cy="155.52" r="4" fill="#2563eb" />
+<polyline points="566.00,337.53 644.00,295.31 722.00,249.69 800.00,201.25 878.00,150.29 956.00,100.00" fill="none" stroke="#f97316" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="566.00" cy="337.53" r="4" fill="#f97316" />
+<circle cx="644.00" cy="295.31" r="4" fill="#f97316" />
+<circle cx="722.00" cy="249.69" r="4" fill="#f97316" />
+<circle cx="800.00" cy="201.25" r="4" fill="#f97316" />
+<circle cx="878.00" cy="150.29" r="4" fill="#f97316" />
+<circle cx="956.00" cy="100.00" r="4" fill="#f97316" />
+  <text x="76.0" y="405" font-family="monospace" font-size="12" fill="#4b5563">steps 1</text>
+  <text x="404.0" y="405" font-family="monospace" font-size="12" fill="#4b5563">32</text>
+  <text x="566.0" y="405" font-family="monospace" font-size="12" fill="#4b5563">steps 1</text>
+  <text x="894.0" y="405" font-family="monospace" font-size="12" fill="#4b5563">32</text>
+</svg>
