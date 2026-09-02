@@ -4,6 +4,12 @@ from pi_from_scratch.evaluation.closed_loop import (
     write_closed_loop_summary,
     write_point_trajectory_svg,
 )
+from pi_from_scratch.evaluation.fast import (
+    make_smooth_action_chunks,
+    run_fast_experiment,
+    write_fast_comparison_svg,
+    write_fast_metrics,
+)
 from pi_from_scratch.evaluation.rtc import (
     rtc_metrics,
     write_rtc_comparison_svg,
@@ -19,10 +25,14 @@ from pi_from_scratch.evaluation.trajectory import write_loss_curve_svg, write_tr
 
 __all__ = [
     "SamplingSweepPoint",
+    "make_smooth_action_chunks",
     "rtc_metrics",
+    "run_fast_experiment",
     "run_sampling_sweep",
     "sampling_points_to_json",
     "write_closed_loop_summary",
+    "write_fast_comparison_svg",
+    "write_fast_metrics",
     "write_loss_curve_svg",
     "write_point_trajectory_svg",
     "write_rtc_comparison_svg",

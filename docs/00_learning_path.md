@@ -157,6 +157,8 @@ flow ODE sampling
 
 交付：FAST-like tokenizer 的 encode/decode；重建误差、token 数、训练吞吐对比；flow 与 autoregressive policy 使用同一数据和评估协议。
 
+正文：[`lessons/11_fast_action_tokenizer.md`](lessons/11_fast_action_tokenizer.md)
+
 #### 第 12 讲：π₀.₅ 如何联合机器人动作和高层语义数据
 
 唯一问题：异构样本如何共享模型并采用离散预训练、flow 后训练的 hybrid recipe？

@@ -1,0 +1,34 @@
+{
+  "split": {
+    "train_chunks": 400,
+    "validation_chunks": 100,
+    "normalization_source": "train only"
+  },
+  "shape": {
+    "horizon": 20,
+    "action_dim": 7
+  },
+  "tokenizer": {
+    "scale": 10.0,
+    "requested_vocab_size": 256,
+    "learned_vocab_size": 256,
+    "merge_rules": 165,
+    "flatten_order": "frequency-major, then action dimension"
+  },
+  "scalar_quantization": {
+    "tokens_per_chunk": 140,
+    "validation_mae": 0.03335634246468544
+  },
+  "dct_without_bpe": {
+    "symbols_per_chunk": 140,
+    "validation_mae": 0.020965348929166794
+  },
+  "fast_like_bpe": {
+    "mean_tokens_per_chunk": 30.809999465942383,
+    "min_tokens_per_chunk": 24,
+    "max_tokens_per_chunk": 38,
+    "compression_ratio": 4.5439793062884375,
+    "validation_mae": 0.020965348929166794,
+    "relative_quadratic_attention_work": 0.048431431994457645
+  }
+}

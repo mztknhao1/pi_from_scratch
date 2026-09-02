@@ -135,6 +135,15 @@ pi-rtc-demo --horizon 16 --execution-horizon 6 --delay-steps 3
 pytest -q tests/test_rtc.py
 ```
 
+第十一讲把连续 action chunk 变成 FAST-like 离散 token：
+
+> [第 11 讲：FAST——怎样把高频连续动作压缩成短 token 序列？](docs/lessons/11_fast_action_tokenizer.md)
+
+```bash
+pi-fast-tokenizer-demo
+pytest -q tests/test_fast.py
+```
+
 ## 代码目录
 
 代码按职责分层，课程命令只负责把这些模块串起来：
