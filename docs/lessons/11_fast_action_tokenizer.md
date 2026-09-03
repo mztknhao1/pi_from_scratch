@@ -26,13 +26,27 @@ FAST（Frequency-space Action Sequence Tokenization）抓住了动作在时间�
 可变长度 action token
 ```
 
-这一讲只解决一个问题：**DCT、量化和 BPE 怎样共同把高频连续动作变成适合自回归模型学习的短序列？**
+接下来讲清楚：**DCT、量化和 BPE 怎样共同把高频连续动作变成适合自回归模型学习的短序列？**
 
 学完后，你应该能顺着代码完成 encode 和 decode，知道误差从哪里产生，也能解释 FAST 与 π₀ flow policy 改变的是系统中的哪一层。
 
 ---
 
 ## 1. 先看完整系统中的位置
+
+先确定 FAST 在 π 系列中的位置。课程按论文出现顺序把 FAST 放在 π₀ 和 π₀.₅ 之间，但模型关系并不是一条替代链：
+
+```text
+                 ┌── π₀-FAST：离散 action token + 自回归生成
+π₀ 基础架构 ─────┤
+                 └── π₀.₅：继续使用连续 flow action expert
+```
+
+FAST 是 π₀ 家族对动作表征和自回归训练路线的一次重要探索。它没有取代 flow matching，也不是进入 π₀.₅ 前必须经过的组件。
+
+从目前公开实现看，连续 action head 仍然更加常见：π₀、π₀.₅ 和 GR00T N1.5 使用 flow matching，OpenVLA-OFT 使用连续 action chunk 与回归目标。openpi 同时保留 π₀-FAST checkpoint，但其 PyTorch 实现目前还不支持 π₀-FAST，π₀.₅ 也只开放了 flow-matching head。
+
+因此，本课程的主实现继续沿 flow matching 前进。单独学习 FAST，可以让我们理解另一条完整路径：怎样把连续控制信号接入语言模型熟悉的 next-token prediction。
 
 VLA 仍然接收图像、语言和机器人状态。FAST 修改的是动作表示以及与之配套的输出头和训练目标：
 
@@ -61,15 +75,15 @@ VLA 仍然接收图像、语言和机器人状态。FAST 修改的是动作表�
 
 设动作张量为：
 
-\[
+$$
 \mathbf A\in\mathbb R^{H\times A}.
-\]
+$$
 
 若把每个标量独立量化成一个 token，序列长度固定为：
 
-\[
+$$
 L_{scalar}=H\times A.
-\]
+$$
 
 本讲实验使用 `H=20, A=7`，因此每个 chunk 都要 140 个 token。动作是否平滑、是否有大量冗余，都不会缩短这个序列。
 
@@ -90,16 +104,16 @@ L_{scalar}=H\times A.
 
 FAST 对每个动作维度计算训练集的第 1 和第 99 百分位数：
 
-\[
+$$
 q_{01}^{(j)},\qquad q_{99}^{(j)}.
-\]
+$$
 
 然后把动作映射到 `[-1, 1]`：
 
-\[
+$$
 \tilde a^{(j)}
 =2\frac{a^{(j)}-q_{01}^{(j)}}{q_{99}^{(j)}-q_{01}^{(j)}}-1.
-\]
+$$
 
 超出分位数范围的值会被裁剪。这能降低少量异常值对有效分辨率的影响，也意味着这里可能产生第一部分重建误差。
 
@@ -122,18 +136,18 @@ normalized = stats.normalize(action_chunk)
 
 对每个动作维度，FAST 沿 horizon 方向独立做离散余弦变换（DCT）。本项目使用正交归一化的 DCT-II：
 
-\[
+$$
 c_{k,j}=\alpha_k\sum_{h=0}^{H-1}
 \tilde a_{h,j}
 \cos\left[\frac{\pi}{H}\left(h+\frac12\right)k\right],
-\]
+$$
 
 其中：
 
-\[
+$$
 \alpha_0=\sqrt{\frac1H},\qquad
 \alpha_k=\sqrt{\frac2H}\quad(k>0).
-\]
+$$
 
 `k=0` 表示直流分量，也就是这段动作的整体水平；较小的 `k` 描述缓慢变化；较大的 `k` 描述快速抖动。
 
@@ -158,11 +172,11 @@ DCT 的价值在于重新组织信息，让平滑动作变成“少量显著低�
 
 连续的 DCT 系数还不能直接作为离散 token。FAST 将它们乘以一个缩放系数并四舍五入：
 
-\[
+$$
 z_{k,j}=\operatorname{round}(s\,c_{k,j}).
-\]
+$$
 
-论文和本讲实验都采用 `s=10` 作为默认值。
+论文采用 `s=10` 作为默认值。
 
 `s` 控制精度与可压缩性的权衡：
 
@@ -175,7 +189,7 @@ z_{k,j}=\operatorname{round}(s\,c_{k,j}).
 
 ## 6. 第四步：按频率优先展平
 
-DCT 后的张量仍是 `[H, A]`，但第一维现在代表频率 `k`。本项目按照 PyTorch 的行优先顺序展平：
+DCT 后的张量仍是 `[H, A]`，但第一维现在代表频率 `k`。按照 PyTorch 的行优先顺序展平：
 
 ```text
 c[0, 0], c[0, 1], ..., c[0, A-1],
@@ -482,5 +496,8 @@ DCT 负责暴露冗余，BPE 负责利用冗余。解码时按相反顺序恢复
 - 官方 processor 源码：[processing_action_tokenizer.py](https://huggingface.co/physical-intelligence/fast/blob/main/processing_action_tokenizer.py)
 - openpi 的 tokenizer 实现：[openpi/models/tokenizer.py](https://github.com/Physical-Intelligence/openpi/blob/main/src/openpi/models/tokenizer.py)
 - openpi 的 π₀-FAST 模型：[openpi/models/pi0_fast.py](https://github.com/Physical-Intelligence/openpi/blob/main/src/openpi/models/pi0_fast.py)
+- openpi 的模型支持范围：[Physical-Intelligence/openpi](https://github.com/Physical-Intelligence/openpi)
+- 连续回归 action head 对照：[OpenVLA-OFT](https://openvla-oft.github.io/)
+- flow-matching action expert 对照：[GR00T N1.5](https://research.nvidia.com/labs/gear/gr00t-n15/)
 
 扩展阅读时可以继续追问两个方向：频率空间是否适合所有控制信号，以及新的 action codec 能否同时优化压缩率、重建误差和跨 embodiment 泛化。阅读这些工作时，建议始终回到相同的验收表：token 数、重建误差、模型训练吞吐、闭环成功率和部署延迟。
