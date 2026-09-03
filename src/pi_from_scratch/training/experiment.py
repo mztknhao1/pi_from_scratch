@@ -20,6 +20,7 @@ from pi_from_scratch.config import TrainConfig
 from pi_from_scratch.data import DatasetSplits, create_dataset_splits
 from pi_from_scratch.evaluation import write_loss_curve_svg, write_trajectory_svg
 from pi_from_scratch.models import TinyPi0
+from pi_from_scratch.objectives import FLOW_TIME_CONVENTION
 from pi_from_scratch.representations import ActionNormalizer, NormalizationStats, RunningActionStats
 
 Batch = dict[str, Tensor]
@@ -164,6 +165,7 @@ def _save_checkpoint(
 ) -> None:
     torch.save(
         {
+            "flow_time_convention": FLOW_TIME_CONVENTION,
             "step": step,
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict(),

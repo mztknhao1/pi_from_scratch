@@ -12,15 +12,15 @@
 
 ## 1. π₀：连续动作的 flow matching
 
-给定真实 action chunk `a`、高斯噪声 `ε` 和时间 `t∈[0,1]`：
+给定真实 action chunk `a`、高斯噪声 `ε` 和论文时间 `τ∈[0,1]`：
 
 ```text
-x_t = t ε + (1 - t) a
-target velocity = ε - a
-loss = ||v_θ(x_t, t, observation) - (ε - a)||²
+x_τ = (1 - τ) ε + τ a
+target velocity = a - ε
+loss = ||v_θ(x_τ, τ, observation) - (a - ε)||²
 ```
 
-这里采用 openpi 代码的约定：`t=1` 是噪声，`t=0` 是动作。推理从高斯噪声出发，用数值积分从 1 走到 0。方向约定可以反过来，但训练与采样必须一致。
+全仓采用 π₀ 论文的时间约定：`τ=0` 是噪声，`τ=1` 是动作。推理从高斯噪声出发，用数值积分从 0 走到 1。openpi 源码使用互补变量 `t=1-τ`，对照源码时需要同时翻转 velocity 符号。
 
 本仓的简化：论文使用预训练 VLM 和大 action expert；M0 使用小 CNN、哈希词表 embedding 和小 Transformer。保留算法骨架，不保留规模能力。
 

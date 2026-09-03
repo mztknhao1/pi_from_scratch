@@ -1,4 +1,4 @@
-"""Real-Time Chunking guidance in the repository's t=1 noise -> t=0 data convention."""
+"""Real-Time Chunking guidance with paper time: tau=0 noise -> tau=1 action data."""
 
 import math
 from collections.abc import Callable
@@ -46,11 +46,11 @@ def rtc_prefix_weights(
 
 
 def _guidance_weight(time: Tensor, max_guidance_weight: float) -> Tensor:
-    """Convert the paper's tau=0->1 coefficient to openpi's t=1->0 convention."""
+    """Evaluate the RTC guidance coefficient in the paper's tau=0->1 convention."""
     if max_guidance_weight <= 0 or not math.isfinite(max_guidance_weight):
         raise ValueError("max_guidance_weight must be finite and positive")
-    tau = 1.0 - time
-    coefficient = (time.square() + tau.square()) / (time * tau)
+    remaining_time = 1.0 - time
+    coefficient = (time.square() + remaining_time.square()) / (time * remaining_time)
     coefficient = torch.nan_to_num(
         coefficient,
         nan=0.0,
@@ -84,7 +84,10 @@ def rtc_guided_velocity(
         base_velocity = velocity_fn(differentiable_actions, time)
         if base_velocity.shape != noisy_actions.shape:
             raise ValueError("velocity_fn must preserve action shape")
-        predicted_data = differentiable_actions - time[:, None, None] * base_velocity
+        predicted_data = (
+            differentiable_actions
+            + (1.0 - time[:, None, None]) * base_velocity
+        )
         weighted_error = (previous_actions - predicted_data) * weights[None, :, None]
         correction = torch.autograd.grad(
             predicted_data,
@@ -93,7 +96,7 @@ def rtc_guided_velocity(
             retain_graph=False,
         )[0]
         guidance = _guidance_weight(time, max_guidance_weight)[:, None, None]
-        guided_velocity = base_velocity - guidance * correction
+        guided_velocity = base_velocity + guidance * correction
     return guided_velocity.detach()
 
 
@@ -139,11 +142,11 @@ def rtc_flow_sample(
     padded_previous[:, :overlap] = previous_actions.to(device=device, dtype=noise.dtype)
 
     actions = noise.to(device=device).clone()
-    dt = -1.0 / num_steps
+    d_tau = 1.0 / num_steps
     for step in range(num_steps):
         time = torch.full(
             (shape[0],),
-            1.0 - step / num_steps,
+            step / num_steps,
             device=device,
             dtype=actions.dtype,
         )
@@ -155,5 +158,5 @@ def rtc_flow_sample(
             weights,
             max_guidance_weight=max_guidance_weight,
         )
-        actions = actions + dt * velocity
+        actions = actions + d_tau * velocity
     return actions.detach()

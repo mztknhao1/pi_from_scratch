@@ -117,7 +117,7 @@ def run_tiny_overfit(*, steps: int = 1_000, seed: int = 7) -> TinyOverfitResult:
         final_loss = eval_loss().item()
         sample_noise = torch.randn_like(actions)
         sampled_actions = euler_sample(
-            lambda x_t, time: model(x_t, time, condition),
+            lambda x_tau, time: model(x_tau, time, condition),
             actions.shape,
             device=actions.device,
             num_steps=20,
@@ -135,8 +135,8 @@ def run_tiny_overfit(*, steps: int = 1_000, seed: int = 7) -> TinyOverfitResult:
 def _print_path_probe() -> None:
     actions = torch.tensor([[[2.0]]])
     noise = torch.tensor([[[-1.0]]])
-    print("linear path: data at t=0, noise at t=1")
-    print("time | x_t   | target velocity")
+    print("linear path: noise at tau=0, action data at tau=1")
+    print("tau  | x_tau | target velocity")
     print("-----+-------+----------------")
     for value in (0.0, 0.25, 0.5, 0.75, 1.0):
         flow = linear_flow_path(actions, noise, torch.tensor([value]))
@@ -150,8 +150,8 @@ def _print_direction_probe() -> None:
     actions = torch.tensor([[[0.25, -0.5], [1.0, 0.75]]])
     noise = torch.tensor([[[2.0, 1.0], [-1.0, 3.0]]])
 
-    def oracle_velocity(x_t: Tensor, time: Tensor) -> Tensor:
-        return (x_t - actions) / time[:, None, None]
+    def oracle_velocity(_x_tau: Tensor, _time: Tensor) -> Tensor:
+        return actions - noise
 
     correct = euler_sample(
         oracle_velocity,
@@ -161,7 +161,7 @@ def _print_direction_probe() -> None:
         noise=noise,
     )
     reversed_result = euler_sample(
-        lambda x_t, time: -oracle_velocity(x_t, time),
+        lambda x_tau, time: -oracle_velocity(x_tau, time),
         actions.shape,
         device=actions.device,
         num_steps=4,

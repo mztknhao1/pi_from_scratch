@@ -16,22 +16,22 @@ def test_linear_flow_path_has_expected_endpoints_and_velocity() -> None:
     actions = torch.tensor([[[1.0, -1.0], [2.0, -2.0]]])
     noise = torch.tensor([[[5.0, 3.0], [6.0, 2.0]]])
 
-    at_data = linear_flow_path(actions, noise, torch.tensor([0.0]))
-    at_noise = linear_flow_path(actions, noise, torch.tensor([1.0]))
+    at_noise = linear_flow_path(actions, noise, torch.tensor([0.0]))
+    at_data = linear_flow_path(actions, noise, torch.tensor([1.0]))
     at_quarter = linear_flow_path(actions, noise, torch.tensor([0.25]))
 
     torch.testing.assert_close(at_data.noisy_actions, actions)
     torch.testing.assert_close(at_noise.noisy_actions, noise)
-    torch.testing.assert_close(at_quarter.noisy_actions, 0.75 * actions + 0.25 * noise)
-    torch.testing.assert_close(at_quarter.target_velocity, noise - actions)
+    torch.testing.assert_close(at_quarter.noisy_actions, 0.75 * noise + 0.25 * actions)
+    torch.testing.assert_close(at_quarter.target_velocity, actions - noise)
 
 
 def test_sampling_direction_recovers_data_with_an_oracle_velocity() -> None:
     actions = torch.tensor([[[0.25, -0.5], [1.0, 0.75]]])
     noise = torch.tensor([[[2.0, 1.0], [-1.0, 3.0]]])
 
-    def oracle_velocity(x_t: torch.Tensor, time: torch.Tensor) -> torch.Tensor:
-        return (x_t - actions) / time[:, None, None]
+    def oracle_velocity(_x_tau: torch.Tensor, _time: torch.Tensor) -> torch.Tensor:
+        return actions - noise
 
     sampled = euler_sample(
         oracle_velocity,
@@ -48,8 +48,8 @@ def test_reversing_velocity_moves_away_from_the_data() -> None:
     actions = torch.zeros(1, 2, 1)
     noise = torch.ones_like(actions)
 
-    def reversed_velocity(x_t: torch.Tensor, time: torch.Tensor) -> torch.Tensor:
-        return -(x_t - actions) / time[:, None, None]
+    def reversed_velocity(_x_tau: torch.Tensor, _time: torch.Tensor) -> torch.Tensor:
+        return noise - actions
 
     sampled = euler_sample(
         reversed_velocity,
@@ -81,7 +81,14 @@ def test_sample_flow_batch_contract_and_time_range() -> None:
     assert batch.target_velocity.shape == actions.shape
     assert batch.noise.shape == actions.shape
     assert batch.time.shape == (8,)
-    assert torch.all((batch.time >= 0.001) & (batch.time <= 1.0))
+    assert torch.all((batch.time >= 0.0) & (batch.time <= 0.999))
+
+
+def test_shifted_beta_emphasizes_low_paper_flow_times() -> None:
+    torch.manual_seed(5)
+    batch = sample_flow_batch(torch.zeros(8_000, 1, 1))
+
+    assert batch.time.mean().item() < 0.45
 
 
 def test_linear_flow_path_rejects_invalid_time_shape_and_range() -> None:

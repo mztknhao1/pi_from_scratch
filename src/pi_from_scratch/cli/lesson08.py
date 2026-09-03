@@ -68,10 +68,10 @@ def run_oracle_sweep(
         dtype=torch.float32,
     )
     noise = torch.randn(target.shape, generator=generator)
-    delta = noise - target
+    delta = target - noise
     valid_mask = torch.ones(target.shape[:2], dtype=torch.bool)
 
-    def velocity_fn(_x_t: Tensor, time: Tensor) -> Tensor:
+    def velocity_fn(_x_tau: Tensor, time: Tensor) -> Tensor:
         return 2.0 * time[:, None, None] * delta
 
     def sample(solver: FlowSolver, num_steps: int) -> Tensor:

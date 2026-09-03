@@ -1,6 +1,7 @@
 """Training objectives for continuous and tokenized action policies."""
 
 from pi_from_scratch.objectives.flow_matching import (
+    FLOW_TIME_CONVENTION,
     FlowMatchingBatch,
     TrainingRTCFlowBatch,
     linear_flow_path,
@@ -10,6 +11,7 @@ from pi_from_scratch.objectives.flow_matching import (
 )
 
 __all__ = [
+    "FLOW_TIME_CONVENTION",
     "FlowMatchingBatch",
     "TrainingRTCFlowBatch",
     "linear_flow_path",

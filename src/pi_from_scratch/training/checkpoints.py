@@ -9,6 +9,7 @@ import torch
 from pi_from_scratch.config import DataConfig, ModelConfig, TrainConfig
 from pi_from_scratch.data import DatasetSplits, create_dataset_splits
 from pi_from_scratch.models import TinyPi0
+from pi_from_scratch.objectives import FLOW_TIME_CONVENTION
 from pi_from_scratch.representations import ActionNormalizer, NormalizationStats
 
 
@@ -31,10 +32,22 @@ def _train_config(value: dict[str, Any]) -> TrainConfig:
 def load_tiny_checkpoint(path: Path, *, device: torch.device) -> LoadedTinyCheckpoint:
     """Restore model, config, split, and normalization with consistency checks."""
     payload = torch.load(path, map_location=device, weights_only=True)
-    required = {"step", "model", "config", "split", "normalization"}
+    required = {
+        "flow_time_convention",
+        "step",
+        "model",
+        "config",
+        "split",
+        "normalization",
+    }
     missing = required - payload.keys()
     if missing:
         raise ValueError(f"checkpoint is missing required keys: {sorted(missing)}")
+    if payload["flow_time_convention"] != FLOW_TIME_CONVENTION:
+        raise ValueError(
+            "checkpoint flow-time convention is incompatible: expected "
+            f"{FLOW_TIME_CONVENTION!r}, got {payload['flow_time_convention']!r}"
+        )
 
     config = _train_config(payload["config"])
     split_payload = payload["split"]

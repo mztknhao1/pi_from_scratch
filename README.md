@@ -159,7 +159,7 @@ src/pi_from_scratch/
 ├── inference/        # Euler/Heun、flow sampling；不管理环境时钟
 ├── envs/             # dependency-free 闭环环境与可选 PushT adapter
 ├── policies/         # 面向 runtime 的统一 policy 接口
-├── runtime/          # 同步 chunk 执行；后续加入 buffer、异步调度与 RTC
+├── runtime/          # 同步 chunk 执行、延迟模拟与 RTC runtime
 ├── cli/              # 各讲实验、训练和可视化命令入口
 ├── config.py         # 当前 Python 配置对象
 └── contracts.py      # 跨模块共享的 observation/action 契约
@@ -174,6 +174,7 @@ src/pi_from_scratch/
 - 图像、文本和低维 state 条件编码；
 - action chunk；
 - conditional flow-matching loss；
+- π₀ 论文时间约定：`τ=0` noise，`τ=1` action；
 - Euler/Heun action sampling 与固定 noise sweep；
 - synthetic dataset 和自动测试。
 
@@ -216,7 +217,7 @@ PushT 只有一个固定任务，适合验证连续控制机制，但不能证�
    flow matching action chunk
 ```
 
-当前仓库已经包含前八讲正文、统一的 observation/action 接口、episode-safe action window、可逆动作变换与 train-only normalization、同步 action-chunk executor、conditional flow-matching objective、prefix/suffix attention、双专家教学模型、可诊断训练、checkpoint、Euler/Heun sampling，以及固定 noise 下的 NFE/误差/延迟 sweep。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
+当前仓库已经包含前十一讲正文，以及 observation/action 契约、episode-safe action window、可逆动作变换、TinyPi0 训练、Euler/Heun sampling、闭环 runner、RTC 和 FAST-like tokenizer。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
 
 ## 项目边界
 

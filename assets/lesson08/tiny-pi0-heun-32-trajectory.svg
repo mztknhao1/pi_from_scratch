@@ -5,14 +5,14 @@
   <text x="66" y="70" font-family="sans-serif" font-size="16" fill="#374151">target</text>
   <line x1="142" y1="64" x2="168" y2="64" stroke="#f97316" stroke-width="4" />
   <text x="176" y="70" font-family="sans-serif" font-size="16" fill="#374151">prediction</text>
-  <polyline points="64.00,416.00 82.00,398.00 100.01,379.99 118.01,361.99" fill="none" stroke="#2563eb" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
-  <polyline points="511.41,375.47 573.51,401.19 656.00,389.24 508.38,319.81" fill="none" stroke="#f97316" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <polyline points="64.00,416.00 78.36,401.64 92.72,387.28 107.08,372.92" fill="none" stroke="#2563eb" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <polyline points="328.56,124.37 341.26,156.08 399.41,95.98 346.32,64.00" fill="none" stroke="#f97316" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
   <circle cx="64.00" cy="416.00" r="4" fill="#2563eb" />
-<circle cx="82.00" cy="398.00" r="4" fill="#2563eb" />
-<circle cx="100.01" cy="379.99" r="4" fill="#2563eb" />
-<circle cx="118.01" cy="361.99" r="4" fill="#2563eb" />
-  <circle cx="511.41" cy="375.47" r="4" fill="#f97316" />
-<circle cx="573.51" cy="401.19" r="4" fill="#f97316" />
-<circle cx="656.00" cy="389.24" r="4" fill="#f97316" />
-<circle cx="508.38" cy="319.81" r="4" fill="#f97316" />
+<circle cx="78.36" cy="401.64" r="4" fill="#2563eb" />
+<circle cx="92.72" cy="387.28" r="4" fill="#2563eb" />
+<circle cx="107.08" cy="372.92" r="4" fill="#2563eb" />
+  <circle cx="328.56" cy="124.37" r="4" fill="#f97316" />
+<circle cx="341.26" cy="156.08" r="4" fill="#f97316" />
+<circle cx="399.41" cy="95.98" r="4" fill="#f97316" />
+<circle cx="346.32" cy="64.00" r="4" fill="#f97316" />
 </svg>

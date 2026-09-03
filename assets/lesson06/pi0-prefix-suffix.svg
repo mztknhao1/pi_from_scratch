@@ -41,7 +41,7 @@
   <text x="400" y="211" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="16" fill="#475569">language tokens</text>
   <text x="720" y="181" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="18" font-weight="700" fill="#9a3412">机器人状态 q</text>
   <text x="720" y="211" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="16" fill="#475569">state token</text>
-  <text x="990" y="181" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="18" font-weight="700" fill="#9a3412">带噪 action chunk Aₜ + t</text>
+  <text x="990" y="181" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="18" font-weight="700" fill="#9a3412">带噪 action chunk Aτ + τ</text>
   <text x="990" y="211" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="16" fill="#475569">H action tokens</text>
 
   <path d="M165 237 L165 278" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow-blue)"/>
@@ -101,5 +101,5 @@
   <path d="M862 625 L862 690" stroke="#ea580c" stroke-width="4" marker-end="url(#arrow-orange)"/>
   <rect x="650" y="700" width="425" height="72" rx="18" fill="#ffffff" stroke="#f97316" stroke-width="3" filter="url(#shadow)"/>
   <text x="862" y="733" text-anchor="middle" font-family="Arial, 'PingFang SC', sans-serif" font-size="20" font-weight="700" fill="#9a3412">每个 action token 输出一个 flow velocity</text>
-  <text x="862" y="758" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" fill="#475569">vθ(Aₜ, t, observation) ∈ ℝᴴˣᴰ</text>
+  <text x="862" y="758" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" fill="#475569">vθ(Aτ, τ, observation) ∈ ℝᴴˣᴰ</text>
 </svg>

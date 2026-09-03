@@ -21,7 +21,7 @@
 - 用控制步数定义 inference delay；
 - blocking、naive async 与 RTC 三种 runtime 的统一时间线；
 - RTC hard prefix 与 exponential soft mask；
-- 适配本仓 `t=1` 噪声、`t=0` 数据约定的 flow guidance；
+- 与 RTC 论文一致的 `τ=0` 噪声、`τ=1` 动作 flow guidance；
 - action jump、position-command jerk、throughput、observation age 和 deadline miss；
 - training-time RTC 的 clean-prefix 训练 batch 与 TinyPi0 loss。
 
@@ -192,64 +192,63 @@ for index in range(delay_steps, horizon - execution_horizon):
 
 ## 五、为什么 RTC 需要一次反向传播？
 
-RTC 论文采用 $\tau=0$ 为噪声、$\tau=1$ 为数据。本仓和 openpi 统一采用：
+RTC 论文和本仓统一采用：
 
 ```text
-t=1：noise
-t=0：data
-t = 1 - τ
+τ=0：noise
+τ=1：action data
 ```
 
-在本仓约定下，模型给出 velocity $v_\theta(x_t,o,t)$ 后，当前 latent 对最终 action 的一步估计是：
+模型给出 velocity $v_\theta(x_\tau,o,\tau)$ 后，当前 latent 对最终 action 的一步估计是：
 
 $$
-\hat x_0=x_t-t\,v_\theta(x_t,o,t).
+\hat x_1=x_\tau+(1-\tau)v_\theta(x_\tau,o,\tau).
 $$
 
-我们希望 $\hat x_0$ 在有权重的位置靠近旧计划 $Y$：
+我们希望 $\hat x_1$ 在有权重的位置靠近旧计划 $Y$：
 
 $$
-e=W\odot(Y-\hat x_0).
+e=W\odot(Y-\hat x_1).
 $$
 
-只修改最终 action 会破坏生成轨迹。RTC 计算 $\hat x_0$ 对当前 latent $x_t$ 的 vector-Jacobian product：
+RTC 需要知道当前 latent 怎样变化，才能让最终 action estimate 靠近旧计划。它计算 $\hat x_1$ 对 $x_\tau$ 的 vector-Jacobian product：
 
 $$
-g=\left(\frac{\partial\hat x_0}{\partial x_t}\right)^T e.
+g=\left(\frac{\partial\hat x_1}{\partial x_\tau}\right)^T e.
 $$
 
-在本仓反向积分的符号约定下：
+沿论文的正向积分约定：
 
 $$
-v_{RTC}=v_\theta-\lambda(t)g.
+v_{RTC}=v_\theta+\lambda(\tau)g.
 $$
 
 guidance coefficient 使用裁剪上限 $\beta$：
 
 $$
-\lambda(t)=
+\lambda(\tau)=
 \min\left(
 \beta,
-\frac{t^2+(1-t)^2}{t(1-t)}
+\frac{\tau^2+(1-\tau)^2}{\tau(1-\tau)}
 \right).
 $$
 
 端点的无穷值和未定义值在代码中安全转换并裁剪。核心实现对应：
 
 ```python
-predicted_data = x_t - time * base_velocity
+predicted_data = x_tau + (1.0 - time) * base_velocity
 weighted_error = (previous_actions - predicted_data) * weights
 
 correction = torch.autograd.grad(
     predicted_data,
-    x_t,
+    x_tau,
     grad_outputs=weighted_error,
 )[0]
 
-guided_velocity = base_velocity - guidance * correction
+guided_velocity = base_velocity + guidance * correction
 ```
 
-这次 VJP 是 inference-time RTC 的主要额外计算。论文报告的真实系统 profiling 中，5 次 denoising 的总耗时从 76 ms 增加到 97 ms；数字属于论文硬件与 π₀.₅ 配置，本仓 toy 实验不复用它作为性能结论。
+这里的反向传播只求 `predicted_data` 对当前 action latent `x_tau` 的输入梯度。模型参数保持冻结，也没有 optimizer step。每个 denoising step 多做一次 VJP，正是 inference-time RTC 的主要额外计算。论文报告的真实系统 profiling 中，5 次 denoising 的总耗时从 76 ms 增加到 97 ms；数字属于论文硬件与 π₀.₅ 配置，本仓 toy 实验不复用它作为性能结论。
 
 ## 六、对着 runtime 代码看一次 chunk 切换
 
@@ -347,13 +346,13 @@ prefix  A[0:d]：保持干净，作为条件，不计算 flow loss
 postfix A[d:H]：正常加噪，计算 flow matching loss
 ```
 
-该论文使用 $\tau=1$ 表示数据，所以 clean prefix 的 token time 设为 1。本仓使用相反约定，clean prefix 的 token time 必须设为 0：
+该论文和本仓都使用 $\tau=1$ 表示数据，所以 clean prefix 的 token time 直接设为 1：
 
 ```python
 token_time = sampled_time.expand(batch, horizon)
-token_time[prefix_mask] = 0.0
+token_time[prefix_mask] = 1.0
 
-noisy_actions = (1 - token_time) * actions + token_time * noise
+noisy_actions = (1 - token_time) * noise + token_time * actions
 loss_mask = ~prefix_mask
 ```
 
@@ -384,7 +383,7 @@ openpi 提供 π₀/π₀.₅ flow policy 与采样接口。RTC 属于推理 run
 
 ### LeRobot 0.6.1
 
-本地固定版本的 `lerobot.policies.rtc` 已包含 `RTCProcessor`、thread-safe `ActionQueue` 和 `LatencyTracker`。其 `RTCProcessor` 同样先做 `tau = 1 - time`，再计算 `x1_t = x_t - time * v_t` 和 autograd correction；queue 在新 chunk 合并时跳过实际 delay 对应的前缀。课程代码删掉线程、processor pipeline 与设备部署细节，保留可读的数学主路径。
+本地固定版本的 `lerobot.policies.rtc` 已包含 `RTCProcessor`、thread-safe `ActionQueue` 和 `LatencyTracker`。LeRobot 接收 openpi 风格的时间变量，因此 processor 内先计算 `tau = 1 - time`，并用 `x1_t = x_t - time * v_t` 得到最终动作估计。本仓的 model-facing time 已经是论文 $\tau$，对应公式直接写成 `x1_tau = x_tau + (1-tau) * velocity`。queue 在新 chunk 合并时都会跳过实际 delay 对应的前缀。
 
 ## 十、本讲验收
 
@@ -426,9 +425,9 @@ training-time prefix conditioning contract
 1. `H=16,s=6,d=3` 时，frozen prefix、soft overlap 和 fresh suffix 分别覆盖哪些索引？
 2. 新 chunk 为什么要跳过前 `d` 个 action？
 3. RTC 为什么不能解决 observation staleness？
-4. `t=1` 为噪声时，最终 action estimate 为什么写成 `x_t - t*v`？
+4. `τ=0` 为噪声时，最终 action estimate 为什么写成 `x_τ + (1-τ)*v`？
 5. VJP 在 RTC guidance 中把哪个空间的 error 传回哪个空间？
-6. Training-time RTC 中 clean prefix 的 flow time 在本仓应该设为 0 还是 1？
+6. Training-time RTC 中 clean prefix 的 flow time 为什么必须设为 1？
 7. 当 `d > H-s` 时，为什么调整 guidance weight 没有用？
 
 ## 扩展阅读

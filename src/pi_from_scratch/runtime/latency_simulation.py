@@ -45,7 +45,7 @@ def _rtc_condition_chunk(
     noise = torch.randn(candidate.shape, generator=generator)[None]
 
     def analytic_velocity(_actions: Tensor, _time: Tensor) -> Tensor:
-        return noise - candidate[None]
+        return candidate[None] - noise
 
     return rtc_flow_sample(
         analytic_velocity,

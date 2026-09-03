@@ -17,8 +17,8 @@ action suffix      = state token + noisy action tokens
 
 ```text
 第 2～4 讲：observation o 与 action chunk A
-第 5 讲：    noisy action A_t、flow time t、target velocity ε-A
-第 6 讲：    v_θ(A_t, t, o) 怎样真正同时读到 A_t、t 和 o
+第 5 讲：    noisy action A_τ、flow time τ、target velocity A-ε
+第 6 讲：    v_θ(A_τ, τ, o) 怎样真正同时读到 A_τ、τ 和 o
 ```
 
 ## 一、只有 Flow Matching 公式还不够
@@ -54,7 +54,7 @@ action suffix      = state token + noisy action tokens
 | `text_ids` | `[B,L]` | integer | 当前任务指令的 token id |
 | `text_mask` | `[B,L]` | `bool` | `True` 表示有效文字 token |
 | `state` | `[B,D_s]` | floating point | 与图像同一 observation timestamp 的本体状态 |
-| `noisy_actions` | `[B,H,D_a]` | floating point | 线性 flow path 在时间 `t` 的位置 $A_t$ |
+| `noisy_actions` | `[B,H,D_a]` | floating point | 线性 flow path 在时间 `τ` 的位置 $A_τ$ |
 | `time` | `[B]` | floating point | 整条 action chunk 共享的 flow time |
 | `action_mask` | `[B,H]` | `bool` | episode 尾部的有效 action prefix |
 
@@ -64,7 +64,7 @@ action suffix      = state token + noisy action tokens
 predicted_velocity: float[B,H,D_a]
 ```
 
-它与第五讲的 `target_velocity = noise - action` 逐位置计算 MSE。VLM 不输出自然语言答案，action expert 也不直接输出 denormalized 电机命令。这里得到的仍是归一化 action space 中的 vector field。
+它与第五讲的 `target_velocity = action - noise` 逐位置计算 MSE。VLM 不输出自然语言答案，action expert 也不直接输出 denormalized 电机命令。这里得到的仍是归一化 action space 中的 vector field。
 
 ### 2. 模型内部把输入变成两段 token
 
@@ -84,7 +84,7 @@ P=[I_1,\ldots,I_{N_{img}},L_1,\ldots,L_L]
 $$
 
 $$
-S=[Q,A_0^t,\ldots,A_{H-1}^t]
+S=[Q,A_0^\tau,\ldots,A_{H-1}^\tau]
 $$
 
 $P$ 是 observation prefix，$S$ 是 action suffix。这里的 prefix/suffix 描述 Transformer 序列中的位置，与语言 tokenizer 的词缀概念无关。
@@ -215,25 +215,25 @@ attention mask: row=query, column=key, 1=visible
 第五讲已经构造：
 
 $$
-A_t=(1-t)A+t\epsilon
+A_\tau=(1-\tau)\epsilon+\tau A
 $$
 
 模型先把每个 action timestep 的 $D_a$ 维连续向量投影到 hidden width $d$：
 
 $$
-E_A=W_A A_t
+E_A=W_A A_τ
 $$
 
-flow time $t$ 经过 sinusoidal embedding 和 MLP：
+flow time $\tau$ 经过 sinusoidal embedding 和 MLP：
 
 $$
-E_t=\operatorname{MLP}(\operatorname{SinCos}(t))
+E_\tau=\operatorname{MLP}(\operatorname{SinCos}(\tau))
 $$
 
-再把同一个 $E_t$ 加到 chunk 中所有 action token：
+再把同一个 $E_\tau$ 加到 chunk 中所有 action token：
 
 $$
-X_h=E_A^{(h)}+E_t+E_{pos}^{(h)},\qquad h=0,\ldots,H-1
+X_h=E_A^{(h)}+E_\tau+E_{pos}^{(h)},\qquad h=0,\ldots,H-1
 $$
 
 这三个分量分别回答：
@@ -242,7 +242,7 @@ $$
 - 整条 chunk 处于多大的噪声水平；
 - 当前 token 对应 chunk 中第几个机器人 timestep。
 
-action position 与 flow time 是两条轴。`h=8` 表示未来动作中的第 8 个位置，`t=0.8` 表示整条 action chunk 更靠近 noise。二者不能共用同一个标量。
+action position 与 flow time 是两条轴。`h=8` 表示未来动作中的第 8 个位置，`τ=0.8` 表示整条 action chunk 已经更靠近干净动作。二者不能共用同一个标量。
 
 ![π₀ token 排列、attention 可见性与两条时间轴](../../assets/lesson06/pi0-token-layout-and-time-axes.png)
 
@@ -310,11 +310,11 @@ batch
  ├─ state ──────────────────────────────────────────┐
  │                                                  │
  └─ clean actions ─> sample_flow_batch()            │
-                      ├─ noisy action A_t ───────────┤
-                      ├─ flow time t ────────────────┤
-                      └─ target velocity ε - A       │
+                      ├─ noisy action A_τ ───────────┤
+                      ├─ flow time τ ────────────────┤
+                      └─ target velocity A - ε       │
                                                      v
-                              predict_velocity(A_t, t, prefix, state)
+                              predict_velocity(A_τ, τ, prefix, state)
                                                      │
                                                      v
                                       predicted velocity [B,H,D_a]
@@ -369,10 +369,10 @@ prefix_mask     [2, 20]
 flow_batch = sample_flow_batch(batch["actions"].float())
 ```
 
-它采样噪声 $\epsilon$ 和 flow time $t$，然后计算：
+它采样噪声 $\epsilon$ 和 flow time $\tau$，然后计算：
 
 $$
-A_t=(1-t)A+t\epsilon,\qquad u_t=\epsilon-A
+A_\tau=(1-\tau)\epsilon+\tau A,\qquad u_\tau=A-\epsilon
 $$
 
 对应 shape 为：
@@ -380,14 +380,14 @@ $$
 ```text
 clean actions A          [2,16,2]
 noise ε                  [2,16,2]
-time t                   [2]
-noisy actions A_t        [2,16,2]
-target velocity ε - A    [2,16,2]
+time τ                   [2]
+noisy actions A_τ        [2,16,2]
+target velocity A - ε    [2,16,2]
 ```
 
 `time` 每个样本只有一个标量，通过 `[B,1,1]` 广播到整条 action chunk。同一条 chunk 的 16 个位置因此处于相同的噪声水平。
 
-从这里开始要留意一条边界：`predict_velocity` 收到的是 `A_t` 和 `t`，干净动作 $A$ 只留在 loss 一侧。若把 $A$ 直接传进模型，模型就可能绕过条件生成任务，训练损失也失去意义。
+从这里开始要留意一条边界：`predict_velocity` 收到的是 `A_τ` 和 `τ`，干净动作 $A$ 只留在 loss 一侧。若把 $A$ 直接传进模型，模型就可能绕过条件生成任务，训练损失也失去意义。
 
 ### 4. State、带噪动作和时间组成 suffix
 
@@ -452,13 +452,13 @@ action hidden states    [2,16,128]
 predicted velocity      [2,16,  2]
 ```
 
-最后，[`masked_flow_matching_loss`](../../src/pi_from_scratch/objectives/flow_matching.py) 比较预测速度和 `target_velocity = ε - A`：
+最后，[`masked_flow_matching_loss`](../../src/pi_from_scratch/objectives/flow_matching.py) 比较预测速度和 `target_velocity = A - ε`：
 
 ```text
 [2,16,2] --对动作维求 MSE--> [2,16] --action_mask 加权平均--> scalar loss
 ```
 
-一次训练 forward 只采样一个随机 $t$，运行一次网络并回归该位置的 vector field。完整 ODE 积分留在推理阶段。
+一次训练 forward 只采样一个随机 $τ$，运行一次网络并回归该位置的 vector field。完整 ODE 积分留在推理阶段。
 
 ### 7. `sample_actions()` 怎样复用同一个模型？
 
@@ -469,25 +469,25 @@ image + text + state
           │
           ├─ encode prefix
           │
-Gaussian noise x_1 [B,H,D_a]
+Gaussian noise x_0 [B,H,D_a]
           │
-          ├─ t=1.0 预测 velocity，Euler 更新
-          ├─ t=0.9 预测 velocity，Euler 更新
+          ├─ τ=0.0 预测 velocity，Euler 更新
+          ├─ τ=0.1 预测 velocity，Euler 更新
           ├─ ...
-          └─ t=0.1 预测 velocity，Euler 更新
+          └─ τ=0.9 预测 velocity，Euler 更新
                           │
                           v
-                  sampled action x_0
+                  sampled action x_1
 ```
 
-[`euler_sample`](../../src/pi_from_scratch/inference/flow_sampling.py) 使用负步长：
+[`euler_sample`](../../src/pi_from_scratch/inference/flow_sampling.py) 使用正步长：
 
 ```python
-dt = -1.0 / num_steps
-x_t = x_t + dt * velocity_fn(x_t, time)
+d_tau = 1.0 / num_steps
+x_tau = x_tau + d_tau * velocity_fn(x_tau, time)
 ```
 
-训练目标 `ε - A` 指向 data-to-noise 方向，负的 `dt` 让积分沿相反方向从 noise 回到 data。每一步变化的只有 $A_t$ 和 $t$；图像、语言与 state 在同一次 policy invocation 中保持不变。
+训练目标 `A - ε` 指向 noise-to-data 方向，正的 `d_tau` 让推理沿同一方向从 noise 走到 data。每一步变化的只有 $A_τ$ 和 $τ$；图像、语言与 state 在同一次 policy invocation 中保持不变。
 
 本实现只复用了 CNN 和 text embedding 产生的 `prefix_tokens`，每个 Euler step 仍会让 prefix 重新经过三层 Transformer。openpi 会进一步缓存 prefix K/V，使后续 step 只运行 suffix query。这是本仓有意保留到推理优化章节再处理的性能差异。
 
@@ -496,7 +496,7 @@ x_t = x_t + dt * velocity_fn(x_t, time)
 1. `actions` 是 flow target 的数据来源，`noisy_actions` 才是模型输入。
 2. state 位于 suffix 第一个位置，输出 velocity 时必须从 `suffix_output[:, 1:]` 开始切片。
 3. 两个 expert 的参数彼此独立，QKV 拼接与 attention mask 负责跨 expert 传递条件。
-4. 训练在随机 $t$ 上做一次回归，推理从 $t=1$ 到 $t=0$ 多次调用同一个 `predict_velocity`。
+4. 训练在随机 $τ$ 上做一次回归，推理从 $τ=0$ 到 $τ=1$ 多次调用同一个 `predict_velocity`。
 
 把这四点连起来，`TinyPi0` 的核心职责可以压缩成一句话：prefix 描述当前场景和任务，suffix 描述机器人状态与当前 flow 位置，双专家 Transformer 据此预测整条 action chunk 的 velocity。
 
@@ -616,7 +616,7 @@ suffix：       one state token + H noisy action tokens
 parameter：    prefix 与 suffix 使用两套 expert 参数
 information：  prefix -> state -> bidirectional action block
 output：       只从 H 个 action positions 读取 [B,H,D_a] velocity
-flow time：    每条 chunk 一个 t，注入全部 action tokens
+flow time：    每条 chunk 一个 τ，注入全部 action tokens
 ```
 
 第 7 讲不再改变这张 attention 图。下一步会把真实的数据 split、normalizer、prefix/suffix model、flow objective、optimizer、checkpoint 和 validation 组装成一次可诊断训练，并区分“loss 能下降”“模型能过拟合小样本”和“held-out 样本有效”这三件事。
@@ -626,11 +626,11 @@ flow time：    每条 chunk 一个 t，注入全部 action tokens
 1. 为什么 action tokens 可以彼此双向 attention，而语言生成通常使用 causal attention？
 2. 若 prefix 可以读取 noisy action，训练和 flow sampling 时会出现什么接口问题？
 3. state 为什么单独形成一个 block，而没有直接与 action token 放在完全相同的 block？
-4. `h=8` 和 `t=0.8` 分别表示哪一条时间轴？
+4. `h=8` 和 `τ=0.8` 分别表示哪一条时间轴？
 5. 随机模型对 image/text/state 都敏感，为什么仍不能说明它理解了指令？
 6. action expert 有独立参数，action loss 还能不能更新 VLM？由什么训练配置决定？
 7. `batch["actions"]`、`flow_batch.noisy_actions` 和 `target_velocity` 分别在哪一侧使用？
-8. 训练目标写成 $\epsilon-A$ 时，为什么推理积分的 `dt` 必须为负？
+8. 训练目标写成 $A-\epsilon$ 时，为什么推理积分的 `dτ` 必须为正？
 
 ## 扩展阅读
 

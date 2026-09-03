@@ -15,7 +15,7 @@ V3：held-out episode 上有可重复的指标
     证明训练集之外的样本也得到改善
 ```
 
-终端里不断下降的一个 `loss` 数字，只覆盖了其中一部分。它可能来自不断变化的 flow noise 和 time，也可能受 validation 泄漏影响；即使训练 loss 接近零，反向积分得到的 action chunk 仍可能偏离真实轨迹。
+终端里不断下降的一个 `loss` 数字，只覆盖了其中一部分。它可能来自不断变化的 flow noise 和 time，也可能受 validation 泄漏影响；即使训练 loss 接近零，正向积分得到的 action chunk 仍可能偏离真实轨迹。
 
 本讲只解决训练闭环和离线诊断。Euler、Heun 等 solver 的误差与采样步数留到第 8 讲，环境中的 success、reward 和闭环稳定性留到第 9 讲。
 
@@ -85,13 +85,13 @@ step 60:  loss=0.47
 
 ```text
 noise ε       [B,H,D_a]
-flow time t   [B]
+flow time τ   [B]
 ```
 
 并构造第五讲定义的：
 
 $$
-A_t=(1-t)A+t\epsilon,\qquad u_t=\epsilon-A
+A_\tau=(1-\tau)\epsilon+\tau A,\qquad u_\tau=A-\epsilon
 $$
 
 ### 3. 一次训练必须留下哪些产物？
@@ -106,7 +106,7 @@ normalization.json         # mean、std、count、train episode provenance
 metrics.json               # 固定 train/validation flow loss 与 action MAE
 loss_curve.svg             # 同一评估 bank 上的 loss 曲线
 validation_trajectory.svg  # denormalized target 与 prediction
-checkpoint_000200.pt       # 模型、优化器、配置、split、normalizer、metrics
+checkpoint_000200.pt       # 模型、优化器、配置、flow convention、split、normalizer、metrics
 ```
 
 只保存 `model.state_dict()` 会让后续部署缺少反归一化依据，也无法确认 checkpoint 对应哪次数据切分。第 3 讲定义的 normalizer artifact 从这一讲开始正式进入 checkpoint。
@@ -166,7 +166,7 @@ Flow Matching 的训练目标包含两层随机变量：
 
 $$
 \epsilon\sim\mathcal N(0,I),\qquad
-t\sim 0.001+0.999\operatorname{Beta}(1.5,1)
+z\sim\operatorname{Beta}(1.5,1),\qquad \tau=0.999(1-z)
 $$
 
 如果每次 validation 都重新采样，两个 step 的 loss 实际在回答不同的问题：
@@ -280,6 +280,7 @@ optimizer.step()
 
 ```python
 {
+    "flow_time_convention": "paper_tau_noise_0_action_1_v1",
     "step": step,
     "model": model.state_dict(),
     "optimizer": optimizer.state_dict(),
@@ -290,7 +291,7 @@ optimizer.step()
 }
 ```
 
-第 8 讲加载 checkpoint 做采样时，必须使用同一份 model config 和 action normalizer。第 9 讲接 runtime 前，还要在 policy adapter 中完成 denormalization。
+第 8 讲加载 checkpoint 做采样时，必须使用同一份 flow time convention、model config 和 action normalizer。Loader 会拒绝缺失或不匹配的 convention，防止旧方向训练出的权重被新版 sampler 静默加载。第 9 讲接 runtime 前，还要在 policy adapter 中完成 denormalization。
 
 ## 六、实验：TinyPi0 能不能记住 8 个 flow points？
 
@@ -321,11 +322,11 @@ pi-training-demo
 
 | step | fixed train flow loss | fixed validation flow loss |
 |---:|---:|---:|
-| 0 | 2.892358 | 2.663300 |
-| 50 | 0.013654 | 1.104679 |
-| 100 | 0.001348 | 1.197350 |
-| 150 | 0.000417 | 1.213220 |
-| 200 | 0.000353 | 1.234646 |
+| 0 | 2.546272 | 2.374461 |
+| 50 | 0.067051 | 2.785703 |
+| 100 | 0.005585 | 2.305114 |
+| 150 | 0.000740 | 2.328194 |
+| 200 | 0.000347 | 2.352170 |
 
 ![TinyPi0 fixed flow-bank train/validation loss](../../assets/lesson07/tiny-overfit-loss-curve.svg)
 
@@ -336,7 +337,7 @@ batch -> normalization -> flow target -> prefix/suffix model
       -> masked MSE -> backward -> AdamW update -> checkpoint
 ```
 
-validation loss 从 `2.66` 降到约 `1.23`，但它在 step 50 之后没有继续随训练 loss 下降。模型正在越来越精确地记住固定训练 bank，held-out episode 的改善已经停滞。
+validation loss 在 `2.3～2.8` 间波动，并没有跟随 train loss 下降。模型正在越来越精确地记住固定训练 bank，却没有改善 held-out episode。
 
 这正是 tiny overfit 应有的解读：V2 通过，V3 仍需正常随机 flow 训练、更大数据和独立超参数实验。
 
@@ -345,7 +346,7 @@ validation loss 从 `2.66` 降到约 `1.23`，但它在 step 50 之后没有继�
 训练结束后，代码对 validation batch 使用一份固定 Gaussian noise，执行 20 步 Euler 采样，再把预测值和 target 一起 denormalize。
 
 ```text
-validation action MAE = 0.404724
+validation action MAE = 0.368288
 ```
 
 ![TinyPi0 validation target 与 sampled action chunk](../../assets/lesson07/tiny-overfit-validation-trajectory.svg)

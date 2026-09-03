@@ -33,26 +33,24 @@ Flow Matching 把这个生成问题转换为 vector-field regression。训练时
 
 这里最容易出现一个看起来很小、实际会让采样完全反向的错误。
 
-本仓跟随 openpi 源码使用：
+本仓跟随 π₀ 论文使用：
 
 ```text
-t = 0：真实 action 数据
-t = 1：Gaussian noise
-训练路径：data → noise
-采样路径：noise → data，因此 dt < 0
+τ = 0：Gaussian noise
+τ = 1：真实 action 数据
+训练与采样路径：noise → data，因此 dτ > 0
 ```
 
-π₀ 论文使用另一套记号：论文中的 $\tau=0$ 是 noise，$\tau=1$ 是 data。两套写法通过下面的变量替换互相转换：
+openpi 源码采用互补的时间变量：源码中的 $t=1$ 是 noise，$t=0$ 是 data。对照源码时使用：
 
 $$
-t=1-\tau
+t_{\mathrm{openpi}}=1-\tau,
+\qquad v_{\mathrm{openpi}}=-u_{\mathrm{paper}}
 $$
 
-只要 path、target velocity、起点和积分方向一起转换，两套记号描述的是同一个过程。混用其中一部分会让采样远离 action 数据。
+时间变量和 velocity 符号需要一起转换。后面的代码和公式统一使用论文记号 $\tau$；程序变量仍叫 `time`，其数值语义始终是 `0 noise → 1 action`。
 
-后面的代码和公式统一采用 openpi 记号。
-
-![Conditional Flow Matching 在 openpi 时间约定下的训练与采样方向](../../assets/lesson05/flow-time-direction.svg)
+![Conditional Flow Matching 在 π₀ 论文时间约定下的训练与采样方向](../../assets/lesson05/flow-time-direction.svg)
 
 ## 二、训练输入输出契约
 
@@ -60,25 +58,25 @@ $$
 
 | 字段 | shape | dtype | 含义 |
 |---|---|---|---|
-| `actions` | `[B, H, D]` | floating point | 归一化后的真实 action chunk，位于 `t=0` |
+| `actions` | `[B, H, D]` | floating point | 归一化后的真实 action chunk，位于 `τ=1` |
 | `valid_mask` | `[B, H]` | `bool` | `True` 表示真实 timestep，`False` 表示 episode 尾部 padding |
-| `noise` | `[B, H, D]` | 与 action 相同 | 标准 Gaussian noise，位于 `t=1` |
+| `noise` | `[B, H, D]` | 与 action 相同 | 标准 Gaussian noise，位于 `τ=0` |
 | `time` | `[B]` | floating point | batch 中每条 chunk 独立采样的 flow time |
 
 目标构造器输出一个 `FlowMatchingBatch`：
 
 | 字段 | shape | 含义 |
 |---|---|---|
-| `noisy_actions` | `[B, H, D]` | 路径在时间 `t` 的位置 $A_t$ |
+| `noisy_actions` | `[B, H, D]` | 路径在时间 `τ` 的位置 $A_\tau$ |
 | `time` | `[B]` | 模型必须知道自己位于路径的哪个位置 |
-| `target_velocity` | `[B, H, D]` | 这一位置对应的监督速度 $u_t$ |
+| `target_velocity` | `[B, H, D]` | 这一位置对应的监督速度 $u_\tau$ |
 | `noise` | `[B, H, D]` | 本次构造路径使用的终点，方便诊断和复现 |
 
 `time` 只在 batch 维采样一次，然后广播到整个 `[H,D]` action chunk。同一条 chunk 中所有 action timestep 共享一个 flow time。机器人时间和 flow time 是两条不同的轴：
 
 ```text
 机器人时间：action[0], action[1], ..., action[H-1]
-flow time： 整条 action chunk 从 data 逐渐变成 noise 的程度
+flow time： 整条 action chunk 从 noise 逐渐变成 data 的程度
 ```
 
 ## 三、线性 probability path 怎样产生监督信号？
@@ -89,54 +87,54 @@ $$
 \epsilon\sim\mathcal{N}(0,I)
 $$
 
-openpi 使用的线性路径是：
+π₀ 论文使用的线性路径是：
 
 $$
-A_t=(1-t)A+t\epsilon
+A_\tau=(1-\tau)\epsilon+\tau A
 $$
 
 检查两个端点：
 
 $$
-A_0=A,\qquad A_1=\epsilon
+A_0=\epsilon,\qquad A_1=A
 $$
 
-对 $t$ 求导：
+对 $\tau$ 求导：
 
 $$
-u_t=\frac{\mathrm d A_t}{\mathrm d t}=\epsilon-A
+u_\tau=\frac{\mathrm d A_\tau}{\mathrm d\tau}=A-\epsilon
 $$
 
-因为这条路径是直线，target velocity 与 $t$ 无关。模型仍然需要接收 $t$：真实 conditional vector field 是许多训练路径在同一位置的条件平均，不同时间的速度场通常不同；后续采样也会在每个积分时刻查询模型。
+因为这条路径是直线，单条 conditional path 的 target velocity 与 $\tau$ 无关。模型仍然需要接收 $\tau$：真实 conditional vector field 是许多训练路径在同一位置的条件平均，不同时间的速度场通常不同；后续采样也会在每个积分时刻查询模型。
 
 用一维数字可以直接看到这条路径。设：
 
 ```text
 真实 action A = 2
 noise ε       = -1
-target velocity = ε - A = -3
+target velocity = A - ε = 3
 ```
 
 于是：
 
-| `t` | $A_t=(1-t)A+t\epsilon$ | $u_t$ |
+| `τ` | $A_\tau=(1-\tau)\epsilon+\tau A$ | $u_\tau$ |
 |---:|---:|---:|
-| 0.00 | 2.00 | -3.00 |
-| 0.25 | 1.25 | -3.00 |
-| 0.50 | 0.50 | -3.00 |
-| 0.75 | -0.25 | -3.00 |
-| 1.00 | -1.00 | -3.00 |
+| 0.00 | -1.00 | 3.00 |
+| 0.25 | -0.25 | 3.00 |
+| 0.50 | 0.50 | 3.00 |
+| 0.75 | 1.25 | 3.00 |
+| 1.00 | 2.00 | 3.00 |
 
 训练时，模型看到的是：
 
 $$
-v_\theta(A_t,t,o)
+v_\theta(A_\tau,\tau,o)
 $$
 
 它需要回归：
 
 $$
-v_\theta(A_t,t,o)\approx\epsilon-A
+v_\theta(A_\tau,\tau,o)\approx A-\epsilon
 $$
 
 observation $o$ 在这里就是 condition。相同的 noisy action 在不同场景中可能对应不同的合理去向，所以 condition 不能从 vector field 中拿掉。
@@ -148,10 +146,10 @@ observation $o$ 在这里就是 condition。相同的 noisy action 在不同场�
 $$
 \mathcal{L}_{\mathrm{FM}}
 =
-\mathbb{E}_{A,o,\epsilon,t}
+\mathbb{E}_{A,o,\epsilon,\tau}
 \left[
 \left\|
-v_\theta(A_t,t,o)-(\epsilon-A)
+v_\theta(A_\tau,\tau,o)-(A-\epsilon)
 \right\|_2^2
 \right]
 $$
@@ -170,15 +168,16 @@ $$
 }
 $$
 
-$m_{b,h}$ 来自第二讲的 `valid_mask`。Padding 位置仍可生成 noise 和 $A_t$，但它们不能贡献 loss。
+$m_{b,h}$ 来自第二讲的 `valid_mask`。Padding 位置仍可生成 noise 和 $A_\tau$，但它们不能贡献 loss。
 
-openpi 没有均匀采样时间，而是使用：
+π₀ 使用更强调低时间、也就是更靠近 noise 区域的 shifted-Beta：
 
 $$
-t\sim 0.001+0.999\cdot\operatorname{Beta}(1.5,1)
+z\sim\operatorname{Beta}(1.5,1),
+\qquad \tau=0.999(1-z)
 $$
 
-在当前记号下，这个分布更常采到靠近 `t=1` 的位置，也就是 noise 较多的区域。论文使用 $\tau=1-t$，所以论文会把相同设计描述成更强调较低、更 noisy 的 $\tau$。
+因此 $\tau$ 位于 `[0,0.999]`，低 $\tau$ 被采到得更频繁。openpi 源码先生成 `t_openpi = 0.001 + 0.999z`；本仓立即取补变量，模型和后续代码只接触论文时间 $\tau$。
 
 ## 五、最小实现与 openpi 的逐项对应
 
@@ -186,8 +185,8 @@ $$
 
 ```python
 time_view = time[:, None, None]
-noisy_actions = (1.0 - time_view) * actions + time_view * noise
-target_velocity = noise - actions
+noisy_actions = (1.0 - time_view) * noise + time_view * actions
+target_velocity = actions - noise
 ```
 
 对应实现位于：
@@ -214,31 +213,31 @@ loss = masked_flow_matching_loss(
 
 这里没有让 objective 读取图像或语言。Objective 只负责制造监督目标；具体模型怎样把 observation 编码成 condition，留到第 6 讲。
 
-## 六、为什么采样时要反向积分？
+## 六、为什么采样时沿正方向积分？
 
-训练 path 沿 `t=0 → 1` 从 action 走向 noise。生成时我们手里只有随机 noise，因此从 `t=1` 出发，用负步长向 `t=0` 积分：
+训练和生成共享同一个方向。生成时从 $A_0=\epsilon$ 出发，用正步长向 $A_1=A$ 积分：
 
 $$
-A_{t+\Delta t}
+A_{\tau+\Delta\tau}
 =
-A_t+\Delta t\,v_\theta(A_t,t,o),
-\qquad \Delta t<0
+A_\tau+\Delta\tau\,v_\theta(A_\tau,\tau,o),
+\qquad \Delta\tau>0
 $$
 
-在前面的例子里，target velocity 是 `-3`。采样时 `dt` 为负数，所以一次更新中的位移 `dt * velocity` 为正，状态会从 `-1` 朝 `2` 移动。
+在前面的例子里，target velocity 是 `3`，`dτ` 也是正数，所以状态会直接从 `-1` 朝 `2` 移动。
 
 本讲用解析 oracle 做 V1 测试。对于 condition 已知的确定目标 $A$，线性路径上的速度可以由当前位置写成：
 
 $$
-v^*(A_t,t,o)=\frac{A_t-A(o)}{t}
+v^*(A_\tau,\tau,o)=A(o)-\epsilon
 $$
 
 从同一份 noise 出发：
 
 ```text
 初始 noise MAE：           1.875
-正确 velocity + 负 dt：   0.000
-velocity 符号反转：        9.375
+正确 velocity + 正 dτ：   0.000
+velocity 符号反转：        3.750
 ```
 
 符号反转后误差比初始 noise 更大，这个测试会在任何模型训练之前发现时间方向错误。
@@ -274,16 +273,16 @@ pytest -q tests/test_flow_matching.py
 一次参考输出是：
 
 ```text
-fixed evaluation loss before: 2.008351
-fixed evaluation loss after:  0.000008
-sampled action MAE:           0.298636
+fixed evaluation loss before: 1.996363
+fixed evaluation loss after:  0.000518
+sampled action MAE:           0.214141
 ```
 
 训练 loss 接近零，说明最小 vector-field regression 可以过拟合。这个结果只达到 V2 tiny-overfit 验证，不能说明模型已学到可靠的 action distribution。
 
 ### 7.2 保留失败结果：loss 很低，采样仍有误差
 
-同一个实验在未见过的 noise 和连续积分时刻上，sampled action MAE 仍约为 `0.30`。原因很直接：网络记住了固定 bank 中有限的 `(A_t,t,o) → u_t` 对，却没有充分覆盖采样轨迹实际经过的位置。
+同一个实验在未见过的 noise 和连续积分时刻上，sampled action MAE 仍约为 `0.21`。原因很直接：网络记住了固定 bank 中有限的 `(A_τ,τ,o) → u_τ` 对，却没有充分覆盖采样轨迹实际经过的位置。
 
 这揭示了三层不同的验收：
 
@@ -314,7 +313,7 @@ sampled action MAE:           0.298636
 - 本讲只验证 Euler 的方向，不评估 solver steps、latency 和生成质量；
 - toy overfit 使用固定 flow bank，不能代表 π₀ 的大规模随机训练。
 
-π₀ 论文采用 `τ=0 noise, τ=1 data`；openpi 代码改成了本讲使用的 `t=1 noise, t=0 data`。阅读源码时可以直接对照固定 commit 中的 [`compute_loss` 和 `sample_actions`](https://github.com/Physical-Intelligence/openpi/blob/d9d61d4da43c859d51cf51318f57c8a160ad1dff/src/openpi/models/pi0.py#L188-L279)。
+本讲代码采用 `τ=0 noise, τ=1 data`。openpi 源码采用互补变量 `t_openpi=1-τ`，因此其中的 target velocity 为 `noise-action`，Euler 步长为负。阅读源码时可以对照固定 commit 中的 [`compute_loss` 和 `sample_actions`](https://github.com/Physical-Intelligence/openpi/blob/d9d61d4da43c859d51cf51318f57c8a160ad1dff/src/openpi/models/pi0.py#L188-L279)，每次转换时同时检查时间、velocity 与积分方向。
 
 ## 九、本讲验收
 
@@ -329,10 +328,10 @@ pytest -q tests/test_flow_matching.py
 
 需要同时满足：
 
-1. `t=0` 的 `noisy_actions` 等于真实 action；
-2. `t=1` 的 `noisy_actions` 等于 noise；
-3. target velocity 等于 `noise - action`；
-4. oracle 使用负 `dt` 能从 noise 回到 action；
+1. `τ=0` 的 `noisy_actions` 等于 noise；
+2. `τ=1` 的 `noisy_actions` 等于真实 action；
+3. target velocity 等于 `action - noise`；
+4. oracle 使用正 `dτ` 能从 noise 走到 action；
 5. 反转 velocity 后误差明显增大；
 6. padding timestep 不贡献 loss；
 7. 固定 flow bank 的最终 loss 低于初始值的 1%。
@@ -342,22 +341,24 @@ pytest -q tests/test_flow_matching.py
 从这里开始，全仓冻结以下约定：
 
 ```text
-flow time：        t=0 data，t=1 noise
-linear path：      A_t=(1-t)A+tε
-target velocity：  ε-A
-sampling：         从 t=1 积分到 t=0，dt<0
+flow time：        τ=0 noise，τ=1 action data
+linear path：      A_τ=(1-τ)ε+τA
+target velocity：  A-ε
+sampling：         从 τ=0 积分到 τ=1，dτ>0
 flow tensors：     [B,H,D]
 time tensor：      [B]
 padding：          由 [B,H] valid_mask 排除
 ```
 
+这一约定也写入 TinyPi0 checkpoint。统一前生成的本地 checkpoint 使用相反 velocity 语义，需要重新运行第 7 讲训练；只翻转新版 sampler 无法修复旧权重。
+
 下一讲不修改这些公式。第 6 讲只新增模型结构：图像、语言和 state 怎样形成 observation prefix，noisy action 和 time 怎样形成 action suffix，action expert 如何输出这里定义的 vector field。
 
 ## 自检问题
 
-1. 在本仓约定下，`t=0.8` 更接近 action 还是 noise？
-2. 若 `A=2, ε=-1`，为什么 target velocity 是 `-3`，采样却会从 `-1` 朝 `2` 移动？
-3. π₀ 论文写 `τ=0 noise`，怎样转换成本仓的 `t`？
+1. 在本仓约定下，`τ=0.8` 更接近 action 还是 noise？
+2. 若 `A=2, ε=-1`，为什么 target velocity 是 `3`？
+3. openpi 源码中的 `t_openpi=0.8`，对应本仓的 $\tau$ 是多少？velocity 符号怎样变化？
 4. 为什么 action chunk 的 $H$ 个机器人 timestep 共享一个 flow time？
 5. 固定 flow bank 的 loss 接近零，为什么还不能证明采样可靠？
 
@@ -365,7 +366,7 @@ padding：          由 [B,H] valid_mask 排除
 
 ### 必读：π₀ 的 flow action 公式
 
-[π₀: A Vision-Language-Action Flow Model for General Robot Control](https://arxiv.org/abs/2410.24164) 第 IV 节给出 conditional action distribution、线性 Gaussian path、flow loss 和 Euler inference。阅读时重点标出论文的 $\tau$ 方向，再与 openpi 源码的 `t` 做一次变量替换。模型架构部分留到下一讲。
+[π₀: A Vision-Language-Action Flow Model for General Robot Control](https://arxiv.org/abs/2410.24164) 第 IV 节给出 conditional action distribution、线性 Gaussian path、flow loss 和 Euler inference。本仓直接沿用论文的 $\tau$ 方向；阅读 openpi 源码时再使用 `t_openpi=1-τ`。模型架构部分留到下一讲。
 
 ### 选读：Flow Matching 的一般形式
 
@@ -373,4 +374,4 @@ padding：          由 [B,H] valid_mask 排除
 
 ### 选读：Flow Matching Guide and Code
 
-[Flow Matching Guide and Code](https://arxiv.org/abs/2412.06264) 系统整理了 source/target convention、probability path、simulation-free training 和不同 parameterization。遇到不同论文时间方向相反时，可以用它建立统一记号，再回到具体代码检查积分起点和 `dt`。
+[Flow Matching Guide and Code](https://arxiv.org/abs/2412.06264) 系统整理了 source/target convention、probability path、simulation-free training 和不同 parameterization。遇到不同论文时间方向相反时，可以用它建立统一记号，再回到具体代码检查积分起点和 `dτ`。

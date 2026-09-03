@@ -37,8 +37,8 @@
       "num_boundaries": 5,
       "wall_time_s": 3.6,
       "throughput_hz": 10.0,
-      "mean_boundary_jump": 0.050791509449481964,
-      "mean_boundary_jerk": 70.16742706298828,
+      "mean_boundary_jump": 0.05079150199890137,
+      "mean_boundary_jerk": 70.16747283935547,
       "mean_boundary_observation_age_s": 0.30000001192092896,
       "deadline_misses": 0
     }

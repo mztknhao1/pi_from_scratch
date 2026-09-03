@@ -12,17 +12,17 @@ observation
        │
        └─ encode prefix
 
-initial noise x₁ ~ N(0,I)       flow time t=1
+initial noise x₀ ~ N(0,I)       flow time τ=0
        │
-       ├─ velocity model vθ(x₁,1,o)
+       ├─ velocity model vθ(x₀,0,o)
        ├─ numerical update
-       ├─ velocity model vθ(x_t,t,o)
+       ├─ velocity model vθ(x_τ,τ,o)
        ├─ numerical update
        └─ ...
-                         flow time t=0
+                         flow time τ=1
                                │
                                ▼
-                 normalized action chunk x₀
+                 normalized action chunk x₁
                                │
                          denormalization
                                │
@@ -92,27 +92,27 @@ sample = flow_sample(
 
 | 输入 | shape / 类型 | 语义 |
 |---|---|---|
-| `velocity_fn` | callable | 输入 `x_t,t`，输出 `vθ(x_t,t,o)` |
+| `velocity_fn` | callable | 输入 `x_τ,τ`，输出 `vθ(x_τ,τ,o)` |
 | `shape` | `(B,H,D_a)` | 整条 action chunk 的 shape |
-| `noise` | `[B,H,D_a]` | `t=1` 的固定 Gaussian initial state |
-| `num_steps` | positive integer | flow interval `[1,0]` 的离散段数 |
+| `noise` | `[B,H,D_a]` | `τ=0` 的固定 Gaussian initial state |
+| `num_steps` | positive integer | flow interval `[0,1]` 的离散段数 |
 | `solver` | `euler` / `heun` | 每一段采用的数值更新规则 |
 | observation | closure 中固定 | image、language、state 条件 |
 
-`velocity_fn` 的输出必须与 `x_t` 同 shape。这里的 velocity 位于 flow action space：
+`velocity_fn` 的输出必须与 `x_τ` 同 shape。这里的 velocity 位于 flow action space：
 
 ```text
-flow velocity: d x_t / d t
+flow velocity: d x_τ / dτ
 ```
 
-它与电机关节速度、末端线速度没有直接等价关系。若 action representation 本身是 joint velocity，模型最终生成的 `x_0` 才具有对应物理语义。
+它与电机关节速度、末端线速度没有直接等价关系。若 action representation 本身是 joint velocity，模型最终生成的 `x_1` 才具有对应物理语义。
 
 ### 2. 输出
 
 采样器返回：
 
 ```text
-x_0: float[B,H,D_a]
+x_1: float[B,H,D_a]
 ```
 
 它仍处在训练时使用的 normalized action space。进入 policy/runtime 边界前需要使用 checkpoint 中的 normalizer 做 inverse。
@@ -144,38 +144,38 @@ $$
 
 ## 三、从 Flow Matching 公式得到推理 ODE
 
-全仓继续采用 openpi 的时间约定：
+全仓采用 π₀ 论文的时间约定：
 
 ```text
-t=1：noise
-t=0：action data
-sampling：1 → 0
+τ=0：noise
+τ=1：action data
+sampling：0 → 1
 ```
 
 模型近似条件 vector field：
 
 $$
-v_\theta(x_t,t,o)\approx\frac{\mathrm dx_t}{\mathrm dt}
+v_\theta(x_\tau,\tau,o)\approx\frac{\mathrm dx_\tau}{\mathrm d\tau}
 $$
 
-给定 observation $o$ 和 initial noise $x_1=\epsilon$，推理要解常微分方程：
+给定 observation $o$ 和 initial noise $x_0=\epsilon$，推理要解常微分方程：
 
 $$
-\frac{\mathrm dx_t}{\mathrm dt}=v_\theta(x_t,t,o),
-\qquad x_1=\epsilon
+\frac{\mathrm dx_\tau}{\mathrm d\tau}=v_\theta(x_\tau,\tau,o),
+\qquad x_0=\epsilon
 $$
 
-我们想得到 $x_0$。若把 `[1,0]` 均匀分成 $S$ 段：
+我们想得到 $x_1$。若把 `[0,1]` 均匀分成 $S$ 段：
 
 $$
-\Delta t=-\frac{1}{S}
+\Delta\tau=\frac{1}{S}
 $$
 
 $$
-t_i=1+i\Delta t,\qquad i=0,\ldots,S
+\tau_i=i\Delta\tau,\qquad i=0,\ldots,S
 $$
 
-负号来自积分方向。第五讲训练 path 的正方向是 data-to-noise，采样沿时间反向走回 data。
+训练 path 和采样都沿 noise-to-data 的正方向运行。这个方向与 π₀ 论文中的 $\tau$ 完全一致。
 
 ## 四、Euler：每一步只查询一次模型
 
@@ -184,25 +184,25 @@ Euler 更新为：
 $$
 x_{i+1}
 =
-x_i+\Delta t\,v_\theta(x_i,t_i,o)
+x_i+\Delta\tau\,v_\theta(x_i,\tau_i,o)
 $$
 
 代码与公式逐项对应：
 
 ```python
-dt = -1.0 / num_steps
+d_tau = 1.0 / num_steps
 
 for step in range(num_steps):
-    t = 1.0 + step * dt
-    velocity = velocity_fn(x_t, t)
-    x_t = x_t + dt * velocity
+    tau = step * d_tau
+    velocity = velocity_fn(x_tau, tau)
+    x_tau = x_tau + d_tau * velocity
 ```
 
 当 `S=4`：
 
 ```text
-query t:      1.00, 0.75, 0.50, 0.25
-state update: x₁ → x₀.₇₅ → x₀.₅ → x₀.₂₅ → x₀
+query τ:      0.00, 0.25, 0.50, 0.75
+state update: x₀ → x₀.₂₅ → x₀.₅ → x₀.₇₅ → x₁
 ```
 
 Euler 在每段起点读取一次 vector field。实现简单、NFE 低，也是 openpi `π₀.sample_actions()` 使用的方法。
@@ -214,17 +214,17 @@ Euler 在每段起点读取一次 vector field。实现简单、NFE 低，也是
 Heun 是二阶 predictor-corrector。每个 step 先用 Euler 做一次预测：
 
 $$
-k_1=v_\theta(x_i,t_i,o)
+k_1=v_\theta(x_i,\tau_i,o)
 $$
 
 $$
-\tilde{x}_{i+1}=x_i+\Delta t\,k_1
+\tilde{x}_{i+1}=x_i+\Delta\tau\,k_1
 $$
 
 再在区间终点查询：
 
 $$
-k_2=v_\theta(\tilde{x}_{i+1},t_i+\Delta t,o)
+k_2=v_\theta(\tilde{x}_{i+1},\tau_i+\Delta\tau,o)
 $$
 
 最后平均两端速度：
@@ -232,41 +232,41 @@ $$
 $$
 x_{i+1}
 =
-x_i+\frac{\Delta t}{2}(k_1+k_2)
+x_i+\frac{\Delta\tau}{2}(k_1+k_2)
 $$
 
 对应代码：
 
 ```python
-velocity = velocity_fn(x_t, time)
-proposal = x_t + dt * velocity
+velocity = velocity_fn(x_tau, time)
+proposal = x_tau + d_tau * velocity
 next_velocity = velocity_fn(proposal, next_time)
-x_t = x_t + 0.5 * dt * (velocity + next_velocity)
+x_tau = x_tau + 0.5 * d_tau * (velocity + next_velocity)
 ```
 
 Heun 对光滑且准确的 vector field 通常能用更少 steps 获得较小离散误差，代价是每步两次 NFE。
 
-本实现最后一次 corrector 会查询 `t=0`。训练时 shifted-Beta sampling 位于 `[0.001,1]`，所以精确的 `t=0` 属于训练边界之外的一个极小外推。openpi 的 Euler 循环最后查询 `t=1/S`，更新后到达 `t=0`，不会在 `t=0` 再调用模型。这是比较 solver 时需要记录的接口差异。
+本实现最后一次 corrector 会查询 `τ=1`。训练时 shifted-Beta sampling 位于 `[0,0.999]`，所以精确的 `τ=1` 属于训练边界之外的一个极小外推。本仓 Euler 循环最后查询 `τ=1-1/S`，更新后到达 `τ=1`，不会在 `τ=1` 再调用模型。这是比较 solver 时需要记录的接口差异。
 
 ## 六、先用解析 vector field 隔离数值误差
 
 直接拿训练模型比较 solver 会混入模型误差。我们先构造一条有解析解的弯曲路径：
 
 $$
-x_t=A+t^2(\epsilon-A)
+x_\tau=\epsilon+\tau^2(A-\epsilon)
 $$
 
 其中：
 
 - $A$ 是目标 action chunk；
 - $\epsilon$ 是固定 initial noise；
-- $x_0=A$；
-- $x_1=\epsilon$。
+- $x_0=\epsilon$；
+- $x_1=A$。
 
-对 $t$ 求导：
+对 $\tau$ 求导：
 
 $$
-v^*(x_t,t)=2t(\epsilon-A)
+v^*(x_\tau,\tau)=2\tau(A-\epsilon)
 $$
 
 这个 velocity 随时间线性变化。Euler 的起点近似会产生可预测误差；Heun 对区间两端的线性函数做梯形积分，可以精确恢复 $A$，只剩浮点误差。
@@ -309,6 +309,8 @@ initial noise seed：    7
 device：                CPU
 ```
 
+checkpoint loader 会先校验 `flow_time_convention`。统一时间方向前生成的旧 checkpoint 会被明确拒绝，需要回到第 7 讲重新训练。
+
 命令：
 
 ```bash
@@ -322,18 +324,18 @@ pi-sampling-demo \
 
 | solver | steps | NFE | action MAE | median latency ms |
 |---|---:|---:|---:|---:|
-| Euler | 1 | 1 | 0.370495 | 0.370 |
-| Euler | 2 | 2 | 0.612902 | 0.608 |
-| Euler | 4 | 4 | 0.434562 | 1.279 |
-| Euler | 8 | 8 | 0.463319 | 2.360 |
-| Euler | 16 | 16 | 0.469883 | 4.550 |
-| Euler | 32 | 32 | 0.454840 | 8.905 |
-| Heun | 1 | 2 | 0.742131 | 0.684 |
-| Heun | 2 | 4 | 0.582340 | 1.235 |
-| Heun | 4 | 8 | 0.471712 | 2.332 |
-| Heun | 8 | 16 | 0.469027 | 4.493 |
-| Heun | 16 | 32 | 0.471307 | 8.913 |
-| Heun | 32 | 64 | 0.458312 | 17.594 |
+| Euler | 1 | 1 | 1.128111 | 0.436 |
+| Euler | 2 | 2 | 0.628998 | 0.708 |
+| Euler | 4 | 4 | 0.777823 | 1.229 |
+| Euler | 8 | 8 | 0.811200 | 2.396 |
+| Euler | 16 | 16 | 0.720150 | 4.419 |
+| Euler | 32 | 32 | 0.649225 | 8.770 |
+| Heun | 1 | 2 | 0.414131 | 0.675 |
+| Heun | 2 | 4 | 0.548417 | 1.222 |
+| Heun | 4 | 8 | 0.640338 | 2.315 |
+| Heun | 8 | 16 | 0.756344 | 4.438 |
+| Heun | 16 | 32 | 0.702058 | 8.769 |
+| Heun | 32 | 64 | 0.641542 | 17.347 |
 
 ![TinyPi0 固定 checkpoint 与 noise 的 sampling sweep](../../assets/lesson08/tiny-pi0-sampling-sweep.svg)
 
@@ -343,9 +345,9 @@ pi-sampling-demo \
 2. action MAE 没有随 steps 单调下降；
 3. Heun 在相同 steps 下更慢；
 4. Heun 在相近 NFE 下也没有稳定优于 Euler；
-5. Euler 1 step 的 MAE 恰好最低。
+5. Heun 1 step 的 MAE 恰好最低。
 
-第五点不能解读为“一步 Euler 普遍最好”。这个 TinyPi0 只在 8 个固定 flow points 上过拟合，vector field 本身并不准确。粗糙的离散误差有时会偶然抵消模型误差，导致某个 steps 在一个 sample 上看起来更好。
+第五点不能解读为“一步 Heun 普遍最好”。这个 TinyPi0 只在 8 个固定 flow points 上过拟合，vector field 本身并不准确。粗糙的离散误差有时会偶然抵消模型误差，导致某个 solver/steps 在一个 sample 上看起来更好。
 
 观察到的离线误差同时受到：
 
@@ -386,7 +388,7 @@ $$
 - float32 与 mixed precision；
 - 两个 checkpoint。
 
-它保证每种方法从同一个 $x_1$ 出发。
+它保证每种方法从同一个 $x_0$ 出发。
 
 ### 扫描多个 noise seeds
 
@@ -422,7 +424,7 @@ heun_result = model.sample_actions(..., noise=noise, solver="heun")
 
 若 Euler 增加 steps 后，解析问题误差不下降，优先检查：
 
-- `dt` 符号；
+- `dτ` 符号；
 - query time；
 - velocity 符号；
 - loop 次数；
@@ -488,7 +490,7 @@ openpi 会先为 observation prefix 建立 KV cache，所以后面的 NFE 主要
 
 | 项目 | 本仓 | openpi |
 |---|---|---|
-| 时间约定 | `t=1` noise，`t=0` data | 相同 |
+| 时间约定 | `τ=0` noise，`τ=1` data | `t_openpi=1-τ`，方向互补 |
 | 默认 solver | Euler | Euler |
 | 默认 steps | 10 | 10 |
 | initial noise | 可显式传入 | 可显式传入 |
@@ -504,7 +506,7 @@ Heun 用来讲清 solver order 与 NFE tradeoff，不代表 π₀ 论文或 open
 
 ### 1. 增加 steps 后结果向 noise 远离
 
-检查 `dt` 是否为负，并复用第五讲的 sampling-direction oracle。
+检查 `dτ` 是否为正、target velocity 是否为 `action-noise`，并复用第五讲的 sampling-direction oracle。
 
 ### 2. 固定 noise 后结果仍不一致
 
@@ -518,7 +520,7 @@ Heun 用来讲清 solver order 与 NFE tradeoff，不代表 π₀ 论文或 open
 
 ### 3. Heun 比 Euler 差很多
 
-先在解析二次路径上验证 Heun。若解析测试通过，进一步检查 learned model 在 `t=0` 的行为，以及 predictor point 是否离开训练分布。
+先在解析二次路径上验证 Heun。若解析测试通过，进一步检查 learned model 在 `τ=1` 边界的行为，以及 predictor point 是否离开训练分布。
 
 ### 4. latency 没有随 NFE 近似增长
 
@@ -561,7 +563,7 @@ pytest -q tests/test_flow_sampling.py tests/test_flow_matching.py tests/test_mod
 
 1. Euler 在二次路径上的误差随 steps 增加而下降；
 2. Heun 在该解析问题上恢复 target；
-3. `dt<0`，sampling 从 `t=1` 走到 `t=0`；
+3. `dτ>0`，sampling 从 `τ=0` 走到 `τ=1`；
 4. 固定 noise 时重复采样逐元素一致；
 5. Euler NFE 等于 steps，Heun NFE 等于两倍 steps；
 6. checkpoint loader 校验 dataset split 与 normalizer artifact；
@@ -573,7 +575,7 @@ pytest -q tests/test_flow_sampling.py tests/test_flow_matching.py tests/test_mod
 从这里开始，policy sampling 侧冻结：
 
 ```text
-flow interval：   t=1 → t=0
+flow interval：   τ=0 → τ=1
 initial state：   explicit Gaussian noise tensor
 default solver：  Euler
 solver metric：   steps + NFE + latency + offline action metric
@@ -586,7 +588,7 @@ output：          denormalized action chunk before runtime
 ## 自检问题
 
 1. flow velocity 与机器人关节速度分别描述什么？
-2. 为什么 `dt` 为负？
+2. 为什么 `dτ` 为正？
 3. Euler 8 steps 和 Heun 8 steps 的计算预算为什么不同？
 4. 比较两个 solver 时，为什么要显式复用同一个 noise tensor？
 5. 解析问题上 Heun 更准确，为什么 TinyPi0 checkpoint 上没有同样结论？

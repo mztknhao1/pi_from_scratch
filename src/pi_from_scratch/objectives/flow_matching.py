@@ -6,6 +6,8 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor
 
+FLOW_TIME_CONVENTION = "paper_tau_noise_0_action_1_v1"
+
 
 @dataclass(frozen=True)
 class FlowMatchingBatch:
@@ -29,7 +31,7 @@ class TrainingRTCFlowBatch:
 
 
 def linear_flow_path(actions: Tensor, noise: Tensor, time: Tensor) -> FlowMatchingBatch:
-    """Interpolate data at ``t=0`` to noise at ``t=1`` using openpi's convention."""
+    """Interpolate noise at ``tau=0`` to action data at ``tau=1`` as in the π₀ paper."""
     if actions.ndim != 3 or not actions.is_floating_point():
         raise ValueError("actions must be floating point with shape [batch, horizon, action_dim]")
     if noise.shape != actions.shape or noise.dtype != actions.dtype or noise.device != actions.device:
@@ -42,8 +44,8 @@ def linear_flow_path(actions: Tensor, noise: Tensor, time: Tensor) -> FlowMatchi
         raise ValueError("time values must lie in [0, 1]")
 
     time_view = time[:, None, None].to(actions.dtype)
-    noisy_actions = (1.0 - time_view) * actions + time_view * noise
-    target_velocity = noise - actions
+    noisy_actions = (1.0 - time_view) * noise + time_view * actions
+    target_velocity = actions - noise
     return FlowMatchingBatch(
         noisy_actions=noisy_actions,
         time=time.to(actions.dtype),
@@ -58,7 +60,7 @@ def sample_flow_batch(
     noise: Tensor | None = None,
     time: Tensor | None = None,
 ) -> FlowMatchingBatch:
-    """Sample noise and time, then construct an openpi-style flow training target."""
+    """Sample noise and paper-convention flow time, then construct a training target."""
     if actions.ndim != 3 or not actions.is_floating_point():
         raise ValueError("actions must be floating point with shape [batch, horizon, action_dim]")
     if noise is None:
@@ -68,7 +70,10 @@ def sample_flow_batch(
             torch.tensor(1.5, device=actions.device),
             torch.tensor(1.0, device=actions.device),
         )
-        time = beta.sample((actions.shape[0],)).to(actions.dtype) * 0.999 + 0.001
+        # π₀ samples a shifted Beta distribution that emphasizes low flow times.
+        # openpi stores the complementary noise-time variable; converting it to
+        # paper time gives tau = 1 - (0.999 * beta + 0.001).
+        time = (1.0 - beta.sample((actions.shape[0],))).to(actions.dtype) * 0.999
     return linear_flow_path(actions, noise, time)
 
 
@@ -79,7 +84,7 @@ def training_rtc_flow_batch(
     noise: Tensor,
     time: Tensor,
 ) -> TrainingRTCFlowBatch:
-    """Construct training-time RTC inputs in the openpi t=1 noise -> t=0 data convention."""
+    """Construct training-time RTC inputs with tau=0 noise and tau=1 action data."""
     if actions.ndim != 3 or not actions.is_floating_point():
         raise ValueError("actions must be floating point with shape [batch, horizon, action_dim]")
     if noise.shape != actions.shape or noise.dtype != actions.dtype or noise.device != actions.device:
@@ -100,15 +105,15 @@ def training_rtc_flow_batch(
     positions = torch.arange(actions.shape[1], device=actions.device)[None]
     prefix_mask = positions < prefix_lengths[:, None]
     token_time = time[:, None].expand(-1, actions.shape[1]).clone()
-    token_time[prefix_mask] = 0.0
+    token_time[prefix_mask] = 1.0
     noisy_actions = (
-        (1.0 - token_time[:, :, None]) * actions
-        + token_time[:, :, None] * noise
+        (1.0 - token_time[:, :, None]) * noise
+        + token_time[:, :, None] * actions
     )
     return TrainingRTCFlowBatch(
         noisy_actions=noisy_actions,
         token_time=token_time,
-        target_velocity=noise - actions,
+        target_velocity=actions - noise,
         loss_mask=~prefix_mask,
         noise=noise,
     )

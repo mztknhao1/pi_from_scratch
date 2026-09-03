@@ -30,7 +30,7 @@ def flow_sample(
     noise: Tensor | None = None,
     solver: FlowSolver = "euler",
 ) -> Tensor:
-    """Integrate from noise at ``t=1`` to an action sample at ``t=0``."""
+    """Integrate from noise at ``tau=0`` to an action sample at ``tau=1``."""
     model_evaluations(solver, num_steps)
     if len(shape) != 3 or any(size < 1 for size in shape):
         raise ValueError("shape must contain positive [batch, horizon, action_dim] sizes")
@@ -39,31 +39,31 @@ def flow_sample(
     if noise is not None and not noise.is_floating_point():
         raise TypeError("noise must be floating point")
 
-    x_t = torch.randn(shape, device=device) if noise is None else noise.clone()
-    dt = -1.0 / num_steps
+    x_tau = torch.randn(shape, device=device) if noise is None else noise.clone()
+    d_tau = 1.0 / num_steps
     for step in range(num_steps):
-        time_value = 1.0 + step * dt
-        time = torch.full((shape[0],), time_value, device=device, dtype=x_t.dtype)
-        velocity = velocity_fn(x_t, time)
-        if velocity.shape != x_t.shape:
+        tau_value = step * d_tau
+        time = torch.full((shape[0],), tau_value, device=device, dtype=x_tau.dtype)
+        velocity = velocity_fn(x_tau, time)
+        if velocity.shape != x_tau.shape:
             raise ValueError("velocity_fn must return the same shape as its action input")
         if solver == "euler":
-            x_t = x_t + dt * velocity
+            x_tau = x_tau + d_tau * velocity
             continue
 
-        proposal = x_t + dt * velocity
-        next_time_value = max(0.0, 1.0 + (step + 1) * dt)
+        proposal = x_tau + d_tau * velocity
+        next_time_value = min(1.0, (step + 1) * d_tau)
         next_time = torch.full(
             (shape[0],),
             next_time_value,
             device=device,
-            dtype=x_t.dtype,
+            dtype=x_tau.dtype,
         )
         next_velocity = velocity_fn(proposal, next_time)
-        if next_velocity.shape != x_t.shape:
+        if next_velocity.shape != x_tau.shape:
             raise ValueError("velocity_fn must return the same shape as its action input")
-        x_t = x_t + 0.5 * dt * (velocity + next_velocity)
-    return x_t
+        x_tau = x_tau + 0.5 * d_tau * (velocity + next_velocity)
+    return x_tau
 
 
 @torch.no_grad()
@@ -95,7 +95,7 @@ def heun_sample(
     num_steps: int = 10,
     noise: Tensor | None = None,
 ) -> Tensor:
-    """Second-order predictor-corrector integration from ``t=1`` to ``t=0``."""
+    """Second-order predictor-corrector integration from ``tau=0`` to ``tau=1``."""
     return flow_sample(
         velocity_fn,
         shape,

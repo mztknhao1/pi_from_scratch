@@ -15,9 +15,9 @@ def quadratic_path_problem() -> tuple[torch.Tensor, torch.Tensor]:
 
 def test_euler_error_decreases_with_steps_on_quadratic_path() -> None:
     target, noise = quadratic_path_problem()
-    delta = noise - target
+    delta = target - noise
 
-    def velocity(_x_t: torch.Tensor, time: torch.Tensor) -> torch.Tensor:
+    def velocity(_x_tau: torch.Tensor, time: torch.Tensor) -> torch.Tensor:
         return 2.0 * time[:, None, None] * delta
 
     errors = []
@@ -38,10 +38,10 @@ def test_euler_error_decreases_with_steps_on_quadratic_path() -> None:
 
 def test_heun_exactly_integrates_time_linear_velocity() -> None:
     target, noise = quadratic_path_problem()
-    delta = noise - target
+    delta = target - noise
 
     sampled = heun_sample(
-        lambda _x_t, time: 2.0 * time[:, None, None] * delta,
+        lambda _x_tau, time: 2.0 * time[:, None, None] * delta,
         target.shape,
         device=target.device,
         num_steps=2,
@@ -54,11 +54,11 @@ def test_heun_exactly_integrates_time_linear_velocity() -> None:
 def test_fixed_noise_sampling_and_sweep_are_reproducible() -> None:
     target, noise = quadratic_path_problem()
     valid_mask = torch.ones(target.shape[:2], dtype=torch.bool)
-    delta = noise - target
+    delta = target - noise
 
     def sample(solver: FlowSolver, steps: int) -> torch.Tensor:
         return flow_sample(
-            lambda _x_t, time: 2.0 * time[:, None, None] * delta,
+            lambda _x_tau, time: 2.0 * time[:, None, None] * delta,
             target.shape,
             device=target.device,
             num_steps=steps,
@@ -87,6 +87,26 @@ def test_fixed_noise_sampling_and_sweep_are_reproducible() -> None:
     ]
 
 
+def test_euler_queries_paper_time_from_zero_toward_one() -> None:
+    target, noise = quadratic_path_problem()
+    queried_times: list[float] = []
+
+    def velocity(_x_tau: torch.Tensor, time: torch.Tensor) -> torch.Tensor:
+        queried_times.append(time.item())
+        return torch.zeros_like(noise)
+
+    flow_sample(
+        velocity,
+        target.shape,
+        device=target.device,
+        num_steps=4,
+        noise=noise,
+        solver="euler",
+    )
+
+    assert queried_times == pytest.approx([0.0, 0.25, 0.5, 0.75])
+
+
 def test_solver_contract_rejects_invalid_inputs() -> None:
     target, noise = quadratic_path_problem()
 
@@ -96,14 +116,14 @@ def test_solver_contract_rejects_invalid_inputs() -> None:
         model_evaluations("rk4", 4)
     with pytest.raises(ValueError, match="shape"):
         flow_sample(
-            lambda x_t, _time: x_t,
+            lambda x_tau, _time: x_tau,
             target.shape,
             device=target.device,
             noise=noise[:, :1],
         )
     with pytest.raises(TypeError, match="floating"):
         flow_sample(
-            lambda x_t, _time: x_t,
+            lambda x_tau, _time: x_tau,
             target.shape,
             device=target.device,
             noise=torch.ones(target.shape, dtype=torch.int64),

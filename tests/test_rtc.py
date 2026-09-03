@@ -37,7 +37,7 @@ def test_rtc_guidance_reduces_weighted_previous_chunk_error() -> None:
     previous = torch.ones(1, 7, 2) * 0.7
 
     def velocity(_actions: torch.Tensor, _time: torch.Tensor) -> torch.Tensor:
-        return noise - target
+        return target - noise
 
     base = flow_sample(
         velocity,
@@ -98,7 +98,7 @@ def test_training_time_rtc_keeps_prefix_clean_and_masks_its_loss() -> None:
 
     torch.testing.assert_close(batch.noisy_actions[0, :2], actions[0, :2])
     torch.testing.assert_close(batch.noisy_actions[1, :4], actions[1, :4])
-    torch.testing.assert_close(batch.token_time[0, :2], torch.zeros(2))
+    torch.testing.assert_close(batch.token_time[0, :2], torch.ones(2))
     assert not batch.loss_mask[0, :2].any()
     assert batch.loss_mask[0, 2:].all()
 
