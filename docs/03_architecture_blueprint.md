@@ -1,6 +1,6 @@
 # 目标代码架构与仿真验证蓝图
 
-本文件定义目标边界。当前代码已按 `data`、`representations`、`models`、`objectives`、`inference`、`policies`、`runtime` 和 `cli` 分层；environment、evaluation 与 memory 等目录仍按讲次在真正需要时加入，不预先创建空壳。
+本文件定义目标边界。当前代码已按 `data`、`representations`、`models`、`objectives`、`inference`、`policies`、`runtime`、`envs`、`evaluation`、`memory` 和 `cli` 分层；后续模块仍按讲次在真正需要时加入，不预先创建空壳。
 
 ## 1. 目标目录
 

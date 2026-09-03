@@ -7,6 +7,13 @@ from pi_from_scratch.data.datasets import (
     create_dataset,
     create_dataset_splits,
 )
+from pi_from_scratch.data.mixtures import (
+    MixedBatch,
+    MixtureSchedule,
+    RobotActionBatch,
+    SampleKind,
+    SemanticBatch,
+)
 from pi_from_scratch.data.windows import (
     EpisodeSplit,
     FutureActionWindow,
@@ -19,6 +26,11 @@ __all__ = [
     "EpisodeSplit",
     "FutureActionWindow",
     "LeRobotPiDataset",
+    "MixedBatch",
+    "MixtureSchedule",
+    "RobotActionBatch",
+    "SampleKind",
+    "SemanticBatch",
     "SyntheticPiDataset",
     "build_future_action_window",
     "create_dataset",

@@ -144,6 +144,28 @@ pi-fast-tokenizer-demo
 pytest -q tests/test_fast.py
 ```
 
+第十二讲进入 π₀.₅ 的异构数据、objective routing 和 Knowledge Insulation：
+
+> [第 12 讲：π₀.₅——机器人轨迹与语义知识怎样进入同一个模型？](docs/lessons/12_pi05_heterogeneous_cotraining.md)
+
+如果你想继续拆开 KI 的梯度路径，可以阅读：
+
+> [附录 A：Knowledge Insulation——让 VLM 学会控制，同时保护预训练知识](docs/appendices/a_knowledge_insulation.md)
+
+```bash
+pi-pi05-mixture-demo
+pytest -q tests/test_pi05_mixture.py
+```
+
+第十三讲为 policy 加入短期视觉与长期文本两种 memory：
+
+> [第 13 讲：MEM——机器人怎样同时记住刚才看见的东西和几分钟前做过的事？](docs/lessons/13_multiscale_embodied_memory.md)
+
+```bash
+pi-memory-demo
+pytest -q tests/test_memory.py
+```
+
 ## 代码目录
 
 代码按职责分层，课程命令只负责把这些模块串起来：
@@ -160,12 +182,13 @@ src/pi_from_scratch/
 ├── envs/             # dependency-free 闭环环境与可选 PushT adapter
 ├── policies/         # 面向 runtime 的统一 policy 接口
 ├── runtime/          # 同步 chunk 执行、延迟模拟与 RTC runtime
+├── memory/           # 短期视觉与长期语义 memory contract
 ├── cli/              # 各讲实验、训练和可视化命令入口
 ├── config.py         # 当前 Python 配置对象
 └── contracts.py      # 跨模块共享的 observation/action 契约
 ```
 
-异步 runtime、memory 和更多 environment adapter 会在对应课程真正需要时加入。
+更多 environment adapter 会在对应课程真正需要时加入。
 
 ## 运行最小训练
 
@@ -217,7 +240,7 @@ PushT 只有一个固定任务，适合验证连续控制机制，但不能证�
    flow matching action chunk
 ```
 
-当前仓库已经包含前十一讲正文，以及 observation/action 契约、episode-safe action window、可逆动作变换、TinyPi0 训练、Euler/Heun sampling、闭环 runner、RTC 和 FAST-like tokenizer。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
+当前仓库已经包含前十三讲正文，以及 observation/action 契约、episode-safe action window、可逆动作变换、TinyPi0 训练、Euler/Heun sampling、闭环 runner、RTC、FAST-like tokenizer、π₀.₅ 异构 objective routing 和多尺度 memory。后续内容会按照 [课程大纲](docs/00_learning_path.md) 逐步加入。
 
 ## 项目边界
 

@@ -220,13 +220,17 @@ flowchart LR
 |---|---|---|
 | π₀ | VLM + action expert + flow objective | VLM 如何生成高频连续机器人动作 |
 | FAST | 动作表征与 autoregressive decoder | 高频 action chunk 如何压缩成更短 token |
+| Hi Robot | 高层 VLM、低层 π₀ 与人类反馈接口 | 如何把复杂 prompt 和执行中的纠正转成低层 VLA 能执行的语言指令 |
 | π₀.₅ | 数据混合、训练目标和高层语义 | 如何获得更好的开放世界泛化与长任务能力 |
+| Knowledge Insulation | mixed objective 与 backbone/action-expert 梯度边界 | 如何让 backbone 适应机器人任务，同时避免 flow gradient 扰动预训练知识 |
 | RTC | 推理 sampler 与异步 runtime | 高延迟 policy 如何连续执行 action chunk |
 | π*₀.₆ / RECAP | 经验数据、value/advantage 与 policy conditioning | 如何从自主尝试、失败和人工纠正中继续学习 |
 | MEM | policy 的短期视频记忆与长期文本记忆 | 如何记住最近视觉细节和分钟级任务进度 |
 | π₀.₇ | 多模态 context conditioning | 如何精确控制策略，并利用质量不同的数据 |
 
 这张表也是整套课程的地图：后续每一讲，都是在本讲系统图中的某个位置增加能力，同时保持其他模块可比较。
+
+Hi Robot 是 π₀.₅ 高低层推理方式的重要前序工作：它使用独立的高层 VLM 生成低层语言指令，再交给 π₀ 执行；π₀.₅ 进一步让同一个模型承担高层文本预测和低层连续动作生成。Knowledge Insulation 则沿着 π₀.₅ 的训练路线继续处理 backbone 与 continuous action expert 之间的梯度冲突，详细内容见[附录 A](../appendices/a_knowledge_insulation.md)。
 
 ## 五、为什么第一份代码仍然从“契约”开始？
 
@@ -337,6 +341,8 @@ pytest -q tests/test_contracts.py
 参考阅读：
 
 - [π₀ paper](https://www.physicalintelligence.company/download/pi0.pdf)：先看 Figure 3 的整体模型结构，不必立即追全部公式。
+- [Hi Robot paper](https://www.physicalintelligence.company/download/hirobot.pdf)：先看分层结构图，区分高层 VLM 生成的低层语言指令与 π₀ 生成的连续动作。
+- [Knowledge Insulation 附录](../appendices/a_knowledge_insulation.md)：沿 attention key/value 路径理解前向信息流和反向梯度隔离。
 - [openpi model observation contract（固定 commit）](https://github.com/Physical-Intelligence/openpi/blob/15a9616a00943ada6c20a0f158e3adb39df2ccac/src/openpi/models/model.py)：观察工程实现中 image、mask、state、prompt 和 action 的组织方式。
 - [MEM paper](https://arxiv.org/abs/2603.03596)：本讲只需看 Figure 1，体会短期视频记忆与长期文本记忆处于系统的什么位置。
 

@@ -4,8 +4,10 @@
 |---|---|---|---|
 | π₀ | VLM 如何输出高频连续机器人动作 | 预训练 VLM + 独立 action expert；用 flow matching 生成 action chunk；跨机器人数据训练 | M2 |
 | FAST | 自回归 VLA 的逐维离散 action token 太长且效果差 | action chunk 归一化后做 DCT，在频域量化并压缩成 token；FAST+ 是通用 tokenizer | M4 |
-| RTC | 高延迟 action-chunk policy 如何连续、异步执行 | 推理时冻结已提交 action prefix，并用 flow inpainting 补全未来；后续工作把 prefix conditioning 移到训练期 | M3 |
+| Hi Robot | 机器人如何理解复杂、多阶段指令，并在执行中接收人的反馈和纠正 | 分层推理：高层 VLM 根据画面、复杂 prompt 和实时反馈生成低层语言指令，低层 π₀ VLA 执行动作 | M5（高低层接口） |
 | π₀.₅ | 如何获得开放世界、长时程泛化 | 多机器人动作、web/VL、高层语义任务联合训练；混合离散预训练与 flow 后训练 | M5 |
+| Knowledge Insulation | 随机初始化的 continuous action expert 如何避免干扰预训练 VLM | 联合训练 FAST action token、VLM 数据和 continuous action；在 action expert 读取 backbone 的 attention 路径上停止 flow gradient | M5（附录 A） |
+| RTC | 高延迟 action-chunk policy 如何连续、异步执行 | 推理时冻结已提交 action prefix，并用 flow inpainting 补全未来；后续工作把 prefix conditioning 移到训练期 | M3 |
 | π*₀.₆ | 如何从部署经验、失败和人工纠正中继续变强 | RECAP：value/advantage 学习与 advantage-conditioned policy，贯穿离线预训练和在线适配 | M6 |
 | MEM | 长时程任务如何同时记住近期视觉细节和长期语义进度 | 视频编码器压缩短期视觉历史；文本记忆概括长期事件与已完成阶段 | M7 |
 | π₀.₇ | 如何让通用策略可控，并利用质量不一的异构数据 | diverse context conditioning：除命令外再条件化策略、表现 metadata、subgoal images 等 | M8 |
@@ -52,10 +54,14 @@ behavior cloning 只模仿数据，无法天然区分成功、失败和更优策
 
 - [π₀ paper](https://www.physicalintelligence.company/download/pi0.pdf)
 - [FAST paper](https://arxiv.org/abs/2501.09747)
+- [Hi Robot paper](https://www.physicalintelligence.company/download/hirobot.pdf)
+- [Hi Robot project page](https://www.pi.website/research/hirobot)
 - [RTC paper](https://arxiv.org/abs/2506.07339)
 - [Training-time RTC paper](https://arxiv.org/abs/2512.05964)
 - [RTC Kinetix reference implementation](https://github.com/Physical-Intelligence/real-time-chunking-kinetix)
 - [π₀.₅ paper](https://arxiv.org/abs/2504.16054)
+- [Knowledge Insulation paper](https://www.physicalintelligence.company/download/pi05_KI.pdf)
+- [Knowledge Insulation 附录](appendices/a_knowledge_insulation.md)
 - [π*₀.₆ paper](https://www.physicalintelligence.company/download/pistar06.pdf)
 - [MEM paper](https://arxiv.org/abs/2603.03596)
 - [MEM project page](https://www.pi.website/research/memory)

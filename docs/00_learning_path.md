@@ -165,11 +165,17 @@ flow ODE sampling
 
 交付：typed mixture sample、objective routing、sampling ratio 记录；小规模 semantic subtask/context 实验；用可测的遗忘约束落实 knowledge insulation。
 
+正文：[`lessons/12_pi05_heterogeneous_cotraining.md`](lessons/12_pi05_heterogeneous_cotraining.md)
+
+专题附录：[`appendices/a_knowledge_insulation.md`](appendices/a_knowledge_insulation.md) 展开解释 Knowledge Insulation 的中文含义、研究动机、joint-training loss、attention 内的 stop-gradient，以及它与冻结 backbone 的区别。
+
 #### 第 13 讲：MEM 如何让 VLA 同时拥有短期与长期记忆
 
 唯一问题：长时程任务中，怎样既保留最近视觉细节以应对遮挡，又用紧凑语义记忆追踪分钟级任务进度？
 
 交付：短期视频窗口与压缩编码、长期文本 memory state、memory update/read 接口；在受控 partial-observability 与多阶段任务中比较无记忆、单尺度记忆和多尺度记忆。
+
+正文：[`lessons/13_multiscale_embodied_memory.md`](lessons/13_multiscale_embodied_memory.md)
 
 #### 第 14 讲：π*₀.₆ / RECAP 如何从部署经验和纠正中学习
 
