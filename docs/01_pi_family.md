@@ -8,8 +8,8 @@
 | π₀.₅ | 如何获得开放世界、长时程泛化 | 多机器人动作、web/VL、高层语义任务联合训练；混合离散预训练与 flow 后训练 | M5 |
 | Knowledge Insulation | 随机初始化的 continuous action expert 如何避免干扰预训练 VLM | 联合训练 FAST action token、VLM 数据和 continuous action；在 action expert 读取 backbone 的 attention 路径上停止 flow gradient | M5（附录 A） |
 | RTC | 高延迟 action-chunk policy 如何连续、异步执行 | 推理时冻结已提交 action prefix，并用 flow inpainting 补全未来；后续工作把 prefix conditioning 移到训练期 | M3 |
-| π*₀.₆ | 如何从部署经验、失败和人工纠正中继续变强 | RECAP：value/advantage 学习与 advantage-conditioned policy，贯穿离线预训练和在线适配 | M6 |
-| MEM | 长时程任务如何同时记住近期视觉细节和长期语义进度 | 视频编码器压缩短期视觉历史；文本记忆概括长期事件与已完成阶段 | M7 |
+| π*₀.₆ | 如何从部署经验、失败和人工纠正中继续变强 | RECAP：value/advantage 学习与 advantage-conditioned policy，采用分批采集、离线更新、再次部署的迭代 | M7 |
+| MEM | 长时程任务如何同时记住近期视觉细节和长期语义进度 | 视频编码器压缩短期视觉历史；文本记忆概括长期事件与已完成阶段 | M6 |
 | π₀.₇ | 如何让通用策略可控，并利用质量不一的异构数据 | diverse context conditioning：除命令外再条件化策略、表现 metadata、subgoal images 等 | M8 |
 
 ## 1. π₀：连续动作的 flow matching

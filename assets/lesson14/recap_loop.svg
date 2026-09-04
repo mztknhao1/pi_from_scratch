@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <rect width="1200" height="700" fill="#f6f2e8"/>
+  <text x="60" y="68" font-family="sans-serif" font-size="34" font-weight="700" fill="#17212b">RECAP：让部署经验回到训练闭环</text>
+  <text x="60" y="101" font-family="sans-serif" font-size="17" fill="#52606d">数据来源不同，先统一成 experience，再由 value 与 advantage 提取更优动作模式</text>
+
+  <rect x="60" y="150" width="265" height="320" rx="22" fill="#fff" stroke="#cf6b50" stroke-width="3"/>
+  <text x="90" y="195" font-family="sans-serif" font-size="24" font-weight="700" fill="#8a3426">1  收集经验</text>
+  <rect x="90" y="225" width="205" height="55" rx="12" fill="#fbe4dc"/>
+  <text x="192" y="258" text-anchor="middle" font-family="sans-serif" font-size="18">Demonstration</text>
+  <rect x="90" y="300" width="205" height="55" rx="12" fill="#fbe4dc"/>
+  <text x="192" y="333" text-anchor="middle" font-family="sans-serif" font-size="18">Autonomous rollout</text>
+  <rect x="90" y="375" width="205" height="55" rx="12" fill="#fbe4dc"/>
+  <text x="192" y="408" text-anchor="middle" font-family="sans-serif" font-size="18">Human intervention</text>
+
+  <path d="M325 310 H420" stroke="#64748b" stroke-width="4" marker-end="url(#arrow)"/>
+  <rect x="420" y="150" width="315" height="320" rx="22" fill="#fff" stroke="#d19b37" stroke-width="3"/>
+  <text x="452" y="195" font-family="sans-serif" font-size="24" font-weight="700" fill="#7a5511">2  评价进展</text>
+  <text x="452" y="240" font-family="sans-serif" font-size="18" fill="#263442">episode outcome → reward</text>
+  <path d="M575 258 V286" stroke="#8b98a5" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="460" y="295" width="235" height="62" rx="12" fill="#fff1c7"/>
+  <text x="577" y="321" text-anchor="middle" font-family="sans-serif" font-size="17">distributional value</text>
+  <text x="577" y="344" text-anchor="middle" font-family="sans-serif" font-size="15">V(observation, task)</text>
+  <path d="M575 360 V382" stroke="#8b98a5" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="577" y="417" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="700">n-step advantage</text>
+  <text x="577" y="443" text-anchor="middle" font-family="sans-serif" font-size="16" fill="#52606d">positive / negative</text>
+
+  <path d="M735 310 H830" stroke="#64748b" stroke-width="4" marker-end="url(#arrow)"/>
+  <rect x="830" y="150" width="310" height="320" rx="22" fill="#fff" stroke="#287c78" stroke-width="3"/>
+  <text x="860" y="195" font-family="sans-serif" font-size="24" font-weight="700" fill="#17615e">3  提取改进策略</text>
+  <rect x="870" y="230" width="230" height="76" rx="12" fill="#dff1ed"/>
+  <text x="985" y="261" text-anchor="middle" font-family="sans-serif" font-size="18">VLA + action expert</text>
+  <text x="985" y="286" text-anchor="middle" font-family="sans-serif" font-size="15">condition on indicator</text>
+  <text x="985" y="348" text-anchor="middle" font-family="sans-serif" font-size="17">训练：有条件 + 无条件</text>
+  <text x="985" y="383" text-anchor="middle" font-family="sans-serif" font-size="17">部署：请求 positive mode</text>
+  <rect x="885" y="410" width="200" height="38" rx="19" fill="#287c78"/>
+  <text x="985" y="436" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="700" fill="#fff">Improved policy</text>
+
+  <path d="M985 470 V565 H193 V480" fill="none" stroke="#287c78" stroke-width="4" stroke-dasharray="10 8" marker-end="url(#arrowGreen)"/>
+  <text x="590" y="606" text-anchor="middle" font-family="sans-serif" font-size="20" font-weight="700" fill="#17615e">分批部署 → 标注 → 离线更新 → 再部署</text>
+  <text x="590" y="638" text-anchor="middle" font-family="sans-serif" font-size="16" fill="#52606d">人仍参与 outcome 标注、intervention 与环境 reset</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#287c78"/></marker>
+  </defs>
+</svg>

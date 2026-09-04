@@ -166,6 +166,15 @@ pi-memory-demo
 pytest -q tests/test_memory.py
 ```
 
+第十四讲让 demonstration、autonomous rollout 与 intervention 通过 value/advantage 进入同一条改进管线：
+
+> [第 14 讲：π*₀.₆ / RECAP——机器人怎样从自己的成功、失败和人工纠正中继续学习？](docs/lessons/14_recap_learning_from_experience.md)
+
+```bash
+pi-recap-demo
+pytest -q tests/test_recap.py
+```
+
 ## 代码目录
 
 代码按职责分层，课程命令只负责把这些模块串起来：

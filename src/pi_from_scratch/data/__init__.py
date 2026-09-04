@@ -7,6 +7,15 @@ from pi_from_scratch.data.datasets import (
     create_dataset,
     create_dataset_splits,
 )
+from pi_from_scratch.data.experience import (
+    ExperienceEpisode,
+    ExperienceSource,
+    improvement_indicators,
+    n_step_advantages,
+    returns_to_go,
+    sparse_completion_rewards,
+    task_advantage_threshold,
+)
 from pi_from_scratch.data.mixtures import (
     MixedBatch,
     MixtureSchedule,
@@ -24,6 +33,8 @@ from pi_from_scratch.data.windows import (
 __all__ = [
     "DatasetSplits",
     "EpisodeSplit",
+    "ExperienceEpisode",
+    "ExperienceSource",
     "FutureActionWindow",
     "LeRobotPiDataset",
     "MixedBatch",
@@ -35,5 +46,10 @@ __all__ = [
     "build_future_action_window",
     "create_dataset",
     "create_dataset_splits",
+    "improvement_indicators",
+    "n_step_advantages",
+    "returns_to_go",
+    "sparse_completion_rewards",
     "split_episode_ids",
+    "task_advantage_threshold",
 ]

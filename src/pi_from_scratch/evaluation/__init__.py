@@ -21,6 +21,11 @@ from pi_from_scratch.evaluation.pi05 import (
     write_pi05_metrics,
     write_pi05_routing_svg,
 )
+from pi_from_scratch.evaluation.recap import (
+    run_recap_experiment,
+    write_recap_comparison_svg,
+    write_recap_metrics,
+)
 from pi_from_scratch.evaluation.rtc import (
     rtc_metrics,
     write_rtc_comparison_svg,
@@ -42,6 +47,7 @@ __all__ = [
     "run_fast_experiment",
     "run_memory_experiment",
     "run_pi05_mixture_experiment",
+    "run_recap_experiment",
     "run_sampling_sweep",
     "sampling_points_to_json",
     "write_closed_loop_summary",
@@ -53,6 +59,8 @@ __all__ = [
     "write_pi05_metrics",
     "write_pi05_routing_svg",
     "write_point_trajectory_svg",
+    "write_recap_comparison_svg",
+    "write_recap_metrics",
     "write_rtc_comparison_svg",
     "write_rtc_metrics",
     "write_sampling_sweep_svg",

@@ -183,6 +183,8 @@ flow ODE sampling
 
 交付：带 reward/source/intervention 的 episode schema；offline value/advantage pipeline；advantage-conditioned policy 对照实验。真实机器人在线 RL 不属于首版范围。
 
+正文：[`lessons/14_recap_learning_from_experience.md`](lessons/14_recap_learning_from_experience.md)
+
 #### 第 15 讲：π₀.₇ 如何用多模态 context 控制策略
 
 唯一问题：除 task command 外，怎样让 performance metadata、strategy、subgoal image 等上下文改变 policy 行为，并明确缺失 context 时的语义？

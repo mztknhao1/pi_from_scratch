@@ -34,6 +34,7 @@ pi-rtc-demo = "pi_from_scratch.cli.lesson10:main"
 pi-fast-tokenizer-demo = "pi_from_scratch.cli.lesson11:main"
 pi-pi05-mixture-demo = "pi_from_scratch.cli.lesson12:main"
 pi-memory-demo = "pi_from_scratch.cli.lesson13:main"
+pi-recap-demo = "pi_from_scratch.cli.lesson14:main"
 pi-visualize-chunk = "pi_from_scratch.cli.visualize_chunk:main"
 pi-train = "pi_from_scratch.cli.train:main"
 
